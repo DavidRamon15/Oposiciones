@@ -9,6 +9,7 @@ const C = D.cfg;
 // la versión con cuentas (cuenta.js) rellena estos ganchos; en la de Claude no hay ninguno
 const GANCHOS = window.GANCHOS || {};
 const R = D.r, TEMAS = D.temas;
+if (C.color) { const rs = document.documentElement.style; rs.setProperty("--red", C.color[0]); rs.setProperty("--red-2", C.color[1]); rs.setProperty("--red-tint", C.color[2]); }
 // el banco y las repetidas apuntan a la pregunta del examen (o del banco) en vez de repetir su texto
 D.banco.forEach(b => { if (b[7] >= 0) { const q = D.examen[b[7]]; b[4] = q.e; b[5] = q.o; } });
 R.repetidas.lista.forEach(g => g.preguntas.forEach(p => { if (p.b != null) { const b = D.banco[p.b]; p.enunciado = b[4];
@@ -27,16 +28,18 @@ const bloqueDe = t => C.temaBloque[t] || "Otros";
 function elegirOp(k) { try { localStorage.setItem("opos-sel", k); } catch (e) { /* sin almacenamiento */ } location.hash = k; location.reload(); }
 const diasHasta = f => f ? Math.ceil((new Date(f + "T09:00:00") - new Date()) / 86400000) : -1;
 const OPL = Object.entries(OPS), LETRA = "ABCDEFGH";
+const colores = c => c.color ? `--c:${c.color[0]};--c2:${c.color[1]};--ct:${c.color[2]};--cf:${c.color[3]}` : "";
 const miles = n => String(n).replace(/(\d)(?=(\d{3})+$)/g, "$1.");   // 2.573 también con cuatro cifras, como en el resto de la web
 $("#pt-burbujas").insertAdjacentHTML("beforeend", OPL.map(([k, o], i) =>
-  `<a class="pt-op" href="#${k}" data-k="${k}"><span class="pt-b" aria-hidden="true">${LETRA[i]}</span>${esc(o.cfg.nombreCorto)}</a>`).join(""));
+  `<a class="pt-op" href="#${k}" data-k="${k}" style="${colores(o.cfg)}"><span class="pt-b" aria-hidden="true">${LETRA[i]}</span>${esc(o.cfg.nombreCorto)}</a>`).join(""));
 const totP = OPL.reduce((x, [, o]) => x + (o.cfg.portada?.[1]?.[0] || 0), 0), totC = OPL.reduce((x, [, o]) => x + (o.cfg.portada?.[0]?.[0] || 0), 0);
 $("#pt-lede").innerHTML = `<b>${miles(totP)} preguntas</b> de ${totC} exámenes oficiales, analizadas una a una: qué temas caen, qué leyes se repiten y simulacros corregidos con la plantilla del tribunal. Puedes cambiar de oposición cuando quieras.`;
 $("#op-cards").innerHTML = OPL.map(([k, o], i) => { const c = o.cfg, d = diasHasta(c.fechaExamen), nop = c.nOpciones || 4;
-  return `<article class="opcard" data-k="${k}">
+  return `<article class="opcard" data-k="${k}" style="${colores(c)}">
+    <div class="oc-foto">${c.imagen ? `<img class="oc-img" src="${c.imagen}" alt="${esc(c.imagenAlt || "")}" loading="lazy">` : `<div class="oc-sinimg"></div>`}
+    ${d >= 0 ? `<span class="oc-aviso">${d === 0 ? "El examen es hoy" : `Examen en ${d} día${d === 1 ? "" : "s"}`}</span>` : ""}</div>
     <div class="oc-top"><div class="oc-cab"><span class="pt-b" aria-hidden="true">${LETRA[i]}</span><span class="oc-cuerpo">${esc(c.cuerpo)}</span></div>
-    <h2>${esc(c.nombre)}</h2><p class="oc-res">${esc(c.resumen)}</p>
-    ${d >= 0 ? `<p class="cuenta">${d === 0 ? "El examen es hoy" : `Examen en ${d} día${d === 1 ? "" : "s"}: ${esc(c.fechaExamenTexto)}`}</p>` : ""}</div>
+    <h2>${esc(c.nombreCorto)}</h2><p class="oc-res">${esc(c.resumen)}${d >= 0 ? ` <b>Próximo examen: ${esc(c.fechaExamenTexto)}.</b>` : ""}</p></div>
     ${c.portada ? `<dl class="oc-cifras">${c.portada.map(([n, t]) => `<div><dt>${esc(t)}</dt><dd>${miles(n)}</dd></div>`).join("")}</dl>` : ""}
     <p class="oc-formato"><b>El test:</b> ${c.simN} preguntas de ${nop} opciones en ${c.simMin} minutos; cada fallo resta 1/${nop - 1} de acierto.</p>
     <button class="primary oc-ir" data-k="${k}">Entrar en ${esc(c.nombreCorto)}</button></article>`; }).join("");
@@ -93,6 +96,7 @@ ajustarNav();
 $("#portal").hidden = !PORTAL; $("#main").hidden = PORTAL; document.querySelector("nav.toc").hidden = PORTAL;
 document.title = PORTAL ? "Radiografía de Oposiciones" : "Radiografía " + C.nombreCorto;
 [["#h-eyebrow", C.cuerpo], ["#h-title", C.titulo]].forEach(([s, v]) => $(s).textContent = v);
+if (C.imagen) { $("#h-img").src = C.imagen; $("#h-img").alt = C.imagenAlt || ""; $("#h-img").hidden = false; }
 [["#h-lede", C.lede], ["#ex-intro", C.exIntro], ["#sim-desc", C.simDesc], ["#temas-intro", C.temasIntro], ["#heat-note", C.heatNote],
  ["#normas-title", C.normasTitulo], ["#normas-intro", C.normasIntro], ["#normas-h3", C.normasH3], ["#formato-intro", C.formatoIntro],
  ["#formato-title", C.formatoTitulo], ["#rep-intro", C.repIntro], ["#metodo-body", C.metodoHTML], ["#pie", C.pie], ["#nav-normas", C.navNormas], ["#nav-formato", C.navFormato]]
