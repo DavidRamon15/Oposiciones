@@ -145,10 +145,21 @@ const tm = Object.fromEntries(R.temas.map(t => [t.tema, t]));
 /* ---------- KPIs + conclusiones ---------- */
 $("#kpis").innerHTML = C.kpis.map(([b, s]) => `<div class="kpi"><b>${b}</b><span>${s}</span></div>`).join("");
 // a la vista solo el titular de cada conclusión; los datos, al pulsarlo
-$("#takeaways").innerHTML = C.takeaways.map(s => { const m = s.match(/^<b>(.*?)<\/b>\s*(.*)$/s);
+$("#takeaways").innerHTML = C.takeaways.map((s, i) => { const m = s.match(/^<b>(.*?)<\/b>\s*(.*)$/s);
   if (!m) return `<li><p>${s}</p></li>`;
   const frase = /\.$/.test(m[1]);   // «<b>Los temas que más preguntas dan</b> en los…» no es una frase entera: el detalle la repite
-  return `<li><details><summary>${m[1].replace(/[.:]$/, "")}</summary><p>${frase ? m[2] : s}</p></details></li>`; }).join("");
+  const sec = (C.tkSec || [])[i], nav = sec && document.querySelector(`#nav-analisis [data-sec="${sec}"] b`);
+  return `<li><details><summary>${m[1].replace(/[.:]$/, "")}</summary><p>${frase ? m[2] : s}</p>${nav ? `<p><a href="#${sec}">Ver el detalle en «${nav.textContent}»</a></p>` : ""}</details></li>`; }).join("");
+// lo que concluye cada sección, a la vista nada más entrar en ella
+// (si el titular no es una frase entera, como «Los temas que más preguntas dan», la primera frase completa, que lleva los datos)
+const TITULARES = C.takeaways.map(s => { const t = (s.match(/^<b>(.*?)<\/b>/s) || [])[1]; if (!t) return null;
+  if (/\.$/.test(t)) return t.replace(/\.$/, "");
+  const llano = s.replace(/<[^>]+>/g, ""); let f = (llano.match(/^.*?\.(?=\s|$)/s) || [llano])[0].replace(/\.$/, "");
+  // las listas largas, con sus primeros elementos (cortando tras «(4,1 %)», no dentro de un título con comas)
+  const corte = f.length > 150 ? f.lastIndexOf("), ", 150) : -1; if (corte > 60) f = f.slice(0, corte + 1);
+  return f; });
+[...new Set(C.tkSec || [])].forEach(sec => { const ts = TITULARES.filter((t, i) => t && C.tkSec[i] === sec);
+  document.querySelector(`#${sec} > header`)?.insertAdjacentHTML("beforeend", `<ul class="clave">${ts.map(t => `<li>${t}</li>`).join("")}</ul>`); });
 const artAll = R.articulos || [];
 
 /* ---------- 1a: bloques apilados ---------- */
@@ -156,7 +167,7 @@ const artAll = R.articulos || [];
   const keys = [...C.bloques.map(([k, p], i) => [k, ["--s1", "--s2", "--s3", "--s4"][i], p]), ["Otros", "--s-other", ""]];
   $("#lg-bloques").innerHTML = keys.map(([k, c, p]) => `<span><i style="background:var(${c})"></i>${k === "Otros" ? "Sin clasificar / fuera del temario actual" : k}${p ? " (" + p + ")" : ""}</span>`).join("");
   const W = Math.max(640, ANOS.length * 44 + 60), H = 300, m = {l: 40, r: 10, t: 10, b: 28}, svg = $("#ch-bloques");
-  svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.setAttribute("width", W); svg.style.maxWidth = "none";
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.style.width = "100%"; svg.style.minWidth = "600px"; svg.style.maxWidth = "none";
   const iw = W - m.l - m.r, ih = H - m.t - m.b, bw = iw / ANOS.length;
   [0, 25, 50, 75, 100].forEach(v => { const y = m.t + ih - ih * v / 100; svgEl("line", {x1: m.l, x2: W - m.r, y1: y, y2: y, stroke: css("--rule")}, svg); const t = svgEl("text", {x: m.l - 6, y: y + 4, "text-anchor": "end", "font-size": 11, fill: css("--muted")}, svg); t.textContent = v + "%"; });
   ANOS.forEach((a, i) => {
@@ -206,6 +217,7 @@ if (pracRows.length) hbars($("#ch-prac"), pracRows.map(([t, v]) => ({l: TEMAS[t]
 if (R.normas) hbars($("#ch-normas"), R.normas.slice(0, 12).map(n => ({l: n.nombre, v: n.total, tip: `${n.total} preguntas · ${Object.keys(n.por_ano).length} convocatorias`})));
 else hbars($("#ch-normas"), R.materias.slice(0, 12).map(n => ({l: n.materia, v: n.veces, tip: `${n.veces} preguntas · ${n.anos.length} convocatorias`})));
 if (C.sinLiteral) $("#panel-literal").hidden = true;
+if (!R.normas) { $("#ch-normas").closest(".panel").hidden = true; if (C.sinLiteral) $("#panel-literal").parentElement.hidden = true; }
 
 /* ---------- 2b: literalidad ---------- */
 if (!C.sinLiteral) (function () {
@@ -227,15 +239,21 @@ const NN = Object.fromEntries((R.normas || []).map(n => [n.norma, n.nombre]));
 const normasArt = [...new Set(artAll.map(a => a.norma))];
 $("#sel-norma").innerHTML = `<option value="">Todas</option>` + normasArt.map(n => `<option value="${n}">${esc(NN[n] || n)}</option>`).join("");
 let artsN = 12; const ARTS_MAX = 40;
-function botonArts(total, que) { const b = $("#btn-arts"), n = Math.min(total, ARTS_MAX); b.hidden = total <= 12; const f = que === "materias"; b.textContent = artsN < n ? `Ver ${f ? "las" : "los"} ${n} ${que} que más caen` : `Ver solo ${f ? "las 12 primeras" : "los 12 primeros"}`; }
+function botonArts(total, que) { const b = $("#btn-arts"), n = Math.min(total, ARTS_MAX); b.hidden = total <= 12; const f = que !== "artículos"; b.textContent = artsN < n ? `Ver ${f ? "las" : "los"} ${n} ${que} que más caen` : `Ver solo ${f ? "las 12 primeras" : "los 12 primeros"}`; }
 $("#btn-arts").addEventListener("click", () => { artsN = artsN === 12 ? ARTS_MAX : 12; R.articulos ? drawArts() : drawMaterias(); });
+// en qué convocatorias sale algo: una casilla por convocatoria (la fecha exacta, al pasar por encima)
+function tira(anos) { const on = ANOS.filter(y => anos.includes(+y) || anos.includes(y)), ult = on[on.length - 1];
+  return `<span class="tira" role="img" aria-label="En ${on.length} de ${ANOS.length} convocatorias">${ANOS.map(y => `<i${on.includes(y) ? ' class="on"' : ""} title="${NOMBRE_OEP(y)}"></i>`).join("")}</span>` +
+    // la fecha de la última solo cuando no es el examen más reciente: es lo que avisa de que algo ha dejado de salir
+    `<span class="note tira-t">${on.length} de ${ANOS.length}${ult && ult !== ANOS[ANOS.length - 1] ? `; la última, en ${NOMBRE_OEP(ult)}` : ""}</span>`; }
 function drawArts() { const f = $("#sel-norma").value, todas = artAll.filter(a => !f || a.norma === f), rows = todas.slice(0, artsN); botonArts(todas.length, "artículos");
-  $("#tb-arts").innerHTML = `<thead><tr><th>Artículo</th><th>Norma</th><th class="num">Preguntas</th><th>Convocatorias en que aparece</th><th>Tema</th></tr></thead><tbody>` +
+  $("#tb-arts").innerHTML = `<thead><tr><th>Artículo</th><th>Norma</th><th class="num">Preguntas</th><th>En qué exámenes sale</th><th>Tema</th></tr></thead><tbody>` +
     rows.map(a => { const q = D.banco.find(b => b[6].split(",").includes(a.articulo)); const t = q ? q[3] : "";
-      return `<tr><td class="mono"><b>art. ${a.num}</b></td><td>${esc(NN[a.norma] || a.norma)}</td><td class="num">${a.veces}</td><td>${ANOS.map(y => `<span class="chip${a.anos.includes(+y) || a.anos.includes(y) ? " on" : ""}">${lblAno(y)}</span>`).join("")}</td><td>${t && TEMAS[t] ? `<span class="mono muted">${t}</span> ${esc(TEMAS[t])}` : ""}</td></tr>`; }).join("") + "</tbody>"; }
-function drawMaterias() { $("#arts-h3").textContent = "Las materias que más caen"; $("#lb-norma").hidden = true; botonArts(R.materias.length, "materias");
-  $("#tb-arts").innerHTML = `<thead><tr><th>Materia (etiqueta del tribunal)</th><th class="num">Preguntas</th><th>Convocatorias en que aparece</th></tr></thead><tbody>` +
-    R.materias.slice(0, artsN).map(m => `<tr><td>${esc(m.materia)}</td><td class="num">${m.veces}</td><td>${ANOS.map(y => `<span class="chip${m.anos.includes(+y) ? " on" : ""}">${lblAno(y)}</span>`).join("")}</td></tr>`).join("") + "</tbody>"; }
+      return `<tr><td class="mono" style="white-space:nowrap"><b>art. ${a.num}</b></td><td>${esc(NN[a.norma] || a.norma)}</td><td class="num">${a.veces}</td><td>${tira(a.anos)}</td><td>${t && TEMAS[t] ? `<span class="mono muted">${t}</span> ${esc(TEMAS[t])}` : ""}</td></tr>`; }).join("") + "</tbody>"; }
+function drawMaterias() { $("#arts-h3").textContent = C.materiasTitulo || "Las materias que más caen"; $("#lb-norma").hidden = true; botonArts(R.materias.length, C.materiasNombre || "materias");
+  const max = R.materias[0]?.veces || 1;
+  $("#tb-arts").innerHTML = `<thead><tr><th>${C.materiaCol || "Materia (etiqueta del tribunal)"}</th><th class="num">Preguntas</th><th></th><th>En qué exámenes sale</th></tr></thead><tbody>` +
+    R.materias.slice(0, artsN).map(m => `<tr><td>${esc(m.materia)}</td><td class="num">${m.veces}</td><td style="width:30%"><div class="minibar"><i style="width:${(100 * m.veces / max).toFixed(1)}%"></i></div></td><td>${tira(m.anos)}</td></tr>`).join("") + "</tbody>"; }
 if (R.articulos) { $("#sel-norma").addEventListener("change", () => { artsN = 12; drawArts(); }); drawArts(); } else drawMaterias();
 
 /* ---------- 3: repetidas ---------- */
