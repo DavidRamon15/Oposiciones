@@ -1,0 +1,69 @@
+/* Cuentas y roles (solo en la web propia). Usa las variables de color y tipografía de la plantilla. */
+.carga-aviso{margin:0;padding:14px max(20px,env(safe-area-inset-left,0px));color:var(--muted);font:500 .95rem var(--f-ui)}
+
+/* botón de cuenta en la barra de secciones y en la portada */
+nav.toc:has(.cu-sitio){display:flex;align-items:center}
+nav.toc:has(.cu-sitio) .in{flex:1;min-width:0;margin:0}
+.cu-sitio{display:flex;gap:6px;align-items:center;flex:none;padding-left:10px;padding-right:max(16px,env(safe-area-inset-right,0px));border-left:1px solid var(--rule)}
+.cu-sitio button,.cu-portal button{font-size:.84rem;padding:6px 12px}
+.cu-portal{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.cu-yo{display:flex;align-items:center;gap:8px;border-color:var(--rule);padding:4px 10px 4px 4px!important;text-align:left}
+.cu-ini{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--pen);color:#fff;font-weight:700;font-size:.85rem;flex:none}
+.cu-yo-t{display:grid;line-height:1.15}.cu-yo-t b{font-size:.84rem;max-width:16ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cu-yo-t small{font-size:.72rem;color:var(--red);font-weight:600}
+.cu-navrol{color:var(--red)!important;font-weight:600!important}
+
+/* aviso flotante */
+.cu-aviso{position:fixed;z-index:30;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));max-width:min(560px,calc(100vw - 32px));
+  background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:6px;font-size:.92rem;box-shadow:0 8px 24px -10px rgba(0,0,0,.4)}
+.cu-aviso.ok{border-left:4px solid var(--good)}.cu-aviso.error{border-left:4px solid var(--bad)}
+
+/* diálogos */
+.cu-dlg{border:1px solid var(--rule);border-top:6px solid var(--red);border-radius:4px;background:var(--sheet);color:var(--ink);padding:24px 24px 20px;width:min(480px,calc(100vw - 32px));max-height:calc(100vh - 48px);overflow-y:auto;overflow-x:hidden}
+.cu-dlg::backdrop{background:rgba(20,22,28,.45)}
+.cu-dlg h2{font-size:1.4rem;margin-bottom:14px;padding-right:28px}
+.cu-dlg h3{font-size:1rem;margin-bottom:6px}
+.cu-cerrar{position:absolute;top:10px;right:10px}.cu-cerrar button{border:0;background:transparent;font-size:1.5rem;line-height:1;padding:2px 8px;color:var(--muted)}
+.cu-form{display:grid;gap:12px}
+.cu-form label:not(.check){display:grid;gap:4px;font-size:.84rem;font-weight:500;color:var(--ink-2)}
+.cu-form input:not([type=checkbox]),.cu-form select,.cu-form textarea{font:inherit;font-size:.95rem;padding:9px 10px;border:1px solid var(--axis);border-radius:4px;background:var(--paper);color:var(--ink);width:100%}
+.cu-form textarea{resize:vertical;font-family:var(--f-text)}
+.cu-form input:focus-visible,.cu-form select:focus-visible,.cu-form textarea:focus-visible{outline:2px solid var(--pen);outline-offset:1px}
+.cu-fila{grid-template-columns:1fr auto;align-items:end}.cu-fila .cu-estado{grid-column:1/-1}
+.cu-acciones{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.cu-estado{min-height:1.2em;font-size:.88rem;margin:0}.cu-estado.error{color:var(--bad)}.cu-estado.ok{color:var(--good)}
+.cu-enlace{border:0;background:transparent;color:var(--pen);padding:0;text-decoration:underline;text-underline-offset:2px;font-size:inherit}
+.cu-bloque{border-top:1px solid var(--rule);margin-top:16px;padding-top:14px;display:grid;gap:8px}
+.cu-peligro button{border-color:var(--bad);color:var(--bad)}
+.cu-codigo-v{font:700 1.25rem/1 var(--f-ui);letter-spacing:.12em;color:var(--pen)}
+.cu-texto{display:grid;gap:10px;margin-bottom:16px}.cu-texto p{font-size:.95rem}
+
+/* invitación a crear cuenta y tareas */
+.cu-invitacion{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between;padding:12px 14px;margin-bottom:12px;border:1px dashed var(--pen);border-radius:4px;background:var(--pen-tint)}
+.cu-invitacion p{max-width:62ch}
+.cu-tareas{border:1px solid var(--rule);border-left:4px solid var(--red);border-radius:4px;padding:12px 14px;margin-bottom:14px;background:var(--paper);display:grid;gap:8px}
+.cu-tareas h3{font-size:1rem}
+.cu-lista{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.cu-lista li{display:flex;gap:10px;justify-content:space-between;align-items:center;flex-wrap:wrap;border-bottom:1px solid var(--rule);padding:6px 0}
+.cu-lista li.tarde b{color:var(--bad)}
+.cu-lista button{font-size:.82rem;padding:5px 11px}
+.cu-notas{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.cu-notas li{border-left:3px solid var(--pen);padding:4px 0 4px 10px}.cu-notas p{font-family:var(--f-text);white-space:pre-wrap}
+
+/* preparador y administración */
+.cu-sec{scroll-margin-top:52px}
+/* las secciones son rejillas: sin min-width:0 una tabla ancha ensancharía toda la página en el móvil */
+.cu-sec > *,#al-cuerpo,#ad-cuerpo,#al-ficha,#ad-ficha,.cu-ficha > *,.cu-ficha .grid2 > *{min-width:0}
+.cu-codigo{display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.cu-tabla td{vertical-align:middle}.cu-tabla select{font-size:.84rem;padding:5px 6px;max-width:190px}
+.cu-tabla button{font-size:.8rem;padding:4px 9px;white-space:nowrap}
+.cu-ficha{display:grid;gap:14px;margin-top:14px}.cu-ficha h4{font-size:.95rem;margin:0 0 6px}
+.cu-temas{list-style:none;margin:0;padding:0;display:grid;gap:5px}
+.cu-temas li{display:grid;grid-template-columns:minmax(0,1fr) 90px 5.5rem;gap:8px;align-items:center;font-size:.86rem}
+.cu-temas li span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cu-barra{height:8px;border-radius:4px;background:var(--bad-tint);overflow:hidden}.cu-barra i{display:block;height:100%;background:var(--good)}
+.acc{display:inline-flex;gap:8px;flex-wrap:wrap}
+@media (max-width:600px){
+  .cu-sitio{padding-left:6px}.cu-yo-t{display:none}.cu-yo{padding:3px!important}
+  .cu-dlg{padding:20px 16px 16px}.cu-temas li{grid-template-columns:minmax(0,1fr) 60px 4.6rem}
+}

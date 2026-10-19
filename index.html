@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Exámenes oficiales de oposiciones analizados pregunta a pregunta, con simulacros corregidos y seguimiento por preparador.">
+<title>Radiografía de Oposiciones</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<style>
+/* Dirección: la hoja de respuestas de lectura óptica. Papel neutro, estructura impresa en tinta roja
+   de "drop-out" y lo que marca el opositor en bolígrafo azul. Grafito para el texto.
+   Layout: columna de lectura (máx. 1080px), alineada a la izquierda; las secciones se separan con la
+   doble regla roja del margen de la hoja; en los exámenes, hoja de respuestas en miniatura fija. */
+:root{
+  --paper:#fbfbf9; --sheet:#ffffff; --ink:#1e2430; --ink-2:#4a5160; --muted:#737a89;
+  --red:#d1495b; --red-2:#e8a3ad; --red-tint:#fbeef0; --rule:#e6e3e3; --axis:#cfcaca;
+  --pen:#2340b0; --pen-tint:#e8ecfa; --good:#1e7b4f; --good-tint:#e5f3ec; --bad:#a3202d; --bad-tint:#f8e6e8; --flag:#a8680f;
+  --bg:var(--paper); --surface:var(--sheet); --accent:var(--pen); --accent-soft:var(--pen-tint); --chip:#f1efef;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s-other:#b9b9bf;
+  --q100:#cde2fb; --q200:#9ec5f4; --q300:#6da7ec; --q400:#3987e5; --q500:#256abf; --q600:#184f95; --q700:#0d366b;
+  --f-ui:"Familjen Grotesk","Helvetica Neue",Arial,system-ui,sans-serif;
+  --f-text:"Source Serif 4",Georgia,"Times New Roman",serif;
+  --f-display:var(--f-ui); --f-body:var(--f-ui); --f-mono:var(--f-ui);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#15171c; --sheet:#1c1f26; --ink:#e9eaee; --ink-2:#b9bdc8; --muted:#8f94a1;
+  --red:#ec7d8c; --red-2:#7a3a44; --red-tint:#2b1d22; --rule:#2c2f37; --axis:#3d414b;
+  --pen:#8ea8ff; --pen-tint:#222b47; --good:#4cc38a; --good-tint:#16302a; --bad:#f2707c; --bad-tint:#371d22; --flag:#e0a640;
+  --chip:#262a33; --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s-other:#5b6066; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#15171c; --sheet:#1c1f26; --ink:#e9eaee; --ink-2:#b9bdc8; --muted:#8f94a1;
+  --red:#ec7d8c; --red-2:#7a3a44; --red-tint:#2b1d22; --rule:#2c2f37; --axis:#3d414b;
+  --pen:#8ea8ff; --pen-tint:#222b47; --good:#4cc38a; --good-tint:#16302a; --bad:#f2707c; --bad-tint:#371d22; --flag:#e0a640;
+  --chip:#262a33; --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s-other:#5b6066; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font:16px/1.55 var(--f-ui);margin:0;font-variant-numeric:tabular-nums}
+.wrap{max-width:1080px;margin:0 auto;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));padding-block:0 72px}
+h1,h2,h3{font-family:var(--f-ui);text-wrap:balance;margin:0;color:var(--ink)}
+h1{font-size:clamp(2.1rem,5.2vw,3.4rem);line-height:1.04;font-weight:700;letter-spacing:-.02em;max-width:20ch}
+h2{font-size:clamp(1.5rem,3vw,1.9rem);font-weight:700;line-height:1.12;letter-spacing:-.01em}
+h3{font-size:1.08rem;font-weight:600;line-height:1.3}
+p{margin:0;max-width:66ch}
+.eyebrow{font-size:.9rem;font-weight:600;color:var(--red)}
+.mono{font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)} .ink2{color:var(--ink-2)}
+a{color:var(--pen);text-underline-offset:2px}
+:focus-visible{outline:2px solid var(--pen);outline-offset:2px}
+
+nav.toc{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--paper);border-bottom:1px solid var(--rule)}
+nav.toc .in{max-width:1080px;margin:0 auto;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+nav.toc a{font-size:.9rem;font-weight:500;color:var(--ink-2);text-decoration:none;padding:13px 10px 11px;white-space:nowrap;border-bottom:2px solid transparent}
+nav.toc a:hover{color:var(--ink);border-bottom-color:var(--red-2)}
+nav.toc a:focus-visible{outline:none;color:var(--ink);border-bottom-color:var(--pen)}
+#nav-cambiar{color:var(--red);font-weight:600}
+
+header.hero{padding-block:48px 32px;display:grid;gap:16px}
+header.hero .lede{font-size:1.1rem;color:var(--ink-2);max-width:62ch}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0;margin-top:8px;border-top:2px solid var(--red);border-bottom:1px solid var(--red-2)}
+.kpi{padding:14px 16px 14px 0;display:grid;gap:2px;align-content:start}
+.kpi + .kpi{padding-left:16px;border-left:1px solid var(--red-2)}
+.kpi b{font-size:1.75rem;font-weight:700;line-height:1.1;letter-spacing:-.01em}
+.kpi span{font-size:.84rem;color:var(--ink-2);line-height:1.35}
+
+section{padding-block:52px 8px;display:grid;gap:20px;scroll-margin-top:52px;border-top:1px solid var(--red-2);position:relative}
+section::before{content:"";position:absolute;left:0;right:0;top:3px;border-top:1px solid var(--red-2)}
+section > header{display:grid;gap:8px}
+.panel{background:var(--sheet);border:1px solid var(--rule);border-radius:4px;padding:20px;min-width:0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,430px),1fr));gap:20px}
+.takeaways{display:grid;gap:14px;counter-reset:t;padding:0;margin:0;list-style:none}
+.takeaways li{display:grid;grid-template-columns:2rem 1fr;gap:10px;align-items:start}
+.takeaways li::before{counter-increment:t;content:counter(t);display:grid;place-items:center;width:1.7rem;height:1.7rem;border:1.5px solid var(--red);border-radius:50%;color:var(--red);font-weight:700;font-size:.85rem;margin-top:1px}
+.takeaways p{max-width:72ch}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.84rem;color:var(--ink-2)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.scroll{overflow-x:auto;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+th{font-size:.78rem;font-weight:600;color:var(--ink-2);text-align:left;padding:8px 6px;border-bottom:1.5px solid var(--red-2);white-space:nowrap}
+td{padding:8px 6px;border-bottom:1px solid var(--rule);vertical-align:top}
+td.num,th.num{text-align:right;white-space:nowrap}
+tr.blk td{font-size:.86rem;font-weight:700;color:var(--red);background:transparent;padding-top:16px;border-bottom-color:var(--red-2)}
+.heat td.c{padding:0;width:34px;min-width:30px;height:26px;text-align:center;font-size:.74rem;font-weight:500;line-height:26px;border:1px solid var(--sheet)}
+.heat td.t{min-width:230px;font-size:.84rem}
+.heat th.y{text-align:center;padding-inline:0;font-size:.7rem}
+.bar{height:10px;border-radius:0 4px 4px 0;background:var(--s1)}
+.hbar{display:grid;grid-template-columns:minmax(120px,240px) 1fr 3.2rem;gap:10px;align-items:center;font-size:.86rem;padding:3px 0}
+.hbar .lbl{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip{display:inline-block;font-size:.72rem;font-weight:500;padding:2px 5px;border-radius:3px;background:var(--chip);color:var(--muted);margin:1px}
+.chip.on{background:var(--pen-tint);color:var(--pen);font-weight:600}
+details.rep{border-bottom:1px solid var(--rule);padding:12px 0}
+details.rep summary{cursor:pointer;list-style:none;display:grid;grid-template-columns:1fr auto;gap:10px;align-items:start}
+details.rep summary::-webkit-details-marker{display:none}
+details.rep summary b{font-family:var(--f-text);font-weight:600;font-size:1rem}
+.qcard{border-left:2px solid var(--red-2);padding:8px 0 8px 14px;margin-top:10px;font-size:.92rem}
+.qcard p{font-family:var(--f-text);font-size:1rem;line-height:1.6}
+.qcard ol{margin:6px 0 0;padding-left:1.5rem;color:var(--ink-2);list-style:upper-alpha;font-family:var(--f-text)}
+.qcard ol li{margin:2px 0}
+.qcard ol li.ok{color:var(--good);font-weight:600}
+.qcard ol li.ok::after{content:" ✓ respuesta oficial";font:600 .78rem var(--f-ui)}
+.ver-resp{margin-top:8px;font-size:.8rem;padding:4px 10px}
+.ver-resp[aria-pressed="true"]{border-color:var(--good);color:var(--good)}
+.tag{font-size:.8rem;font-weight:600;color:var(--red);white-space:nowrap}
+.controls{display:flex;flex-wrap:wrap;gap:12px;align-items:end}
+.controls label{display:grid;gap:4px;font-size:.8rem;color:var(--ink-2);font-weight:500;min-width:0;max-width:100%}
+.controls select{width:100%;max-width:min(100%,460px);text-overflow:ellipsis}
+select,input[type=search]{font:inherit;font-size:.92rem;padding:8px 10px;border:1px solid var(--axis);border-radius:4px;background:var(--sheet);color:var(--ink);max-width:100%}
+input[type=search]{min-width:min(100%,260px)}
+button{font:500 .9rem var(--f-ui);padding:8px 14px;border:1px solid var(--axis);border-radius:4px;background:var(--sheet);color:var(--ink);cursor:pointer}
+button:hover{border-color:var(--ink-2)}
+button[disabled]{opacity:.45;cursor:default}
+svg text{font-family:var(--f-ui)}
+.tip{position:fixed;z-index:20;pointer-events:none;background:var(--ink);color:var(--paper);font-size:.82rem;line-height:1.35;padding:7px 9px;border-radius:4px;max-width:280px;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+.note{font-size:.84rem;color:var(--muted);max-width:none}
+.pill{display:inline-block;font-size:.76rem;padding:1px 7px;border-radius:10px;border:1px solid var(--axis);color:var(--ink-2)}
+
+/* portada: los cuadernillos de examen */
+#portal h1{max-width:14ch}
+.opgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:18px;margin-top:8px}
+.opcard{position:relative;display:grid;gap:12px;align-content:start;text-align:left;background:var(--sheet);border:1px solid var(--rule);border-top:6px solid var(--red);border-radius:2px 2px 4px 4px;padding:22px 22px 20px 32px;cursor:pointer;font:inherit;color:var(--ink);transition:transform .15s ease,box-shadow .15s ease}
+.opcard::before{content:"";position:absolute;left:16px;top:0;bottom:0;border-left:1px dashed var(--red-2)}
+.opcard:hover{transform:translateY(-2px);box-shadow:0 10px 24px -14px rgba(30,36,48,.35);border-color:var(--rule)}
+.opcard:focus-visible{outline:2px solid var(--pen);outline-offset:3px}
+.opcard h2{font-size:1.65rem}.opcard .eyebrow{font-weight:500;color:var(--ink-2);font-size:.85rem}
+.opcard .meta{display:flex;flex-wrap:wrap;gap:6px}
+.opcard .go{font-weight:600;color:var(--pen)}
+
+/* ===== exámenes: la hoja de respuestas ===== */
+.modes{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:10px}
+.mode{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--rule);border-radius:4px;padding:12px 14px;cursor:pointer;background:var(--paper)}
+.mode:hover{border-color:var(--red-2)}
+.mode:has(input:checked){border-color:var(--pen);background:var(--pen-tint)}
+.mode input{margin-top:5px;accent-color:var(--pen)}
+.mode span{display:grid;gap:2px}.mode small{color:var(--ink-2);font-size:.82rem;line-height:1.35}
+label.check{display:flex;flex-direction:row;align-items:center;gap:6px;font-size:.88rem;color:var(--ink-2)}
+label.check input{accent-color:var(--pen)}
+button.primary{background:var(--pen);border-color:var(--pen);color:#fff;font-weight:600}
+button.primary:hover{filter:brightness(1.1)}
+.exbar{position:sticky;top:calc(env(safe-area-inset-top,0px) + 45px);z-index:4;display:grid;gap:8px;background:var(--sheet);border:1px solid var(--rule);border-top:3px solid var(--red);border-radius:2px 2px 4px 4px;padding:10px 14px;margin-bottom:14px;box-shadow:0 8px 20px -18px rgba(30,36,48,.5)}
+.exbar .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.exbar #ex-progress{flex:1;min-width:140px;font-weight:500}
+#ex-timer{font-size:1.05rem;font-weight:700}#ex-timer.low{color:var(--bad)}
+#ex-sheet-toggle{font-size:.82rem;padding:5px 10px}
+.sheet{display:grid;grid-template-columns:repeat(auto-fill,minmax(40px,1fr));gap:4px 6px;max-height:150px;overflow-y:auto;padding:6px 2px 2px;border-top:1px solid var(--red-tint)}
+.sheet[hidden]{display:none!important}
+.sheet button{display:flex;align-items:center;gap:4px;padding:2px 3px;border:0;background:transparent;font-size:.74rem;color:var(--red);font-weight:600;border-radius:3px}
+.sheet button:hover{background:var(--red-tint)}
+.sheet button i{width:12px;height:12px;border-radius:50%;border:1.5px solid var(--red-2);flex:none}
+.sheet button.on i{background:var(--pen);border-color:var(--pen)}
+.sheet button.fl i{box-shadow:0 0 0 2px var(--flag)}
+.sheet.res{max-height:none;border-top:0;padding:4px 0 0}
+.sheet.res button.ok i{background:var(--good);border-color:var(--good)}
+.sheet.res button.ko i{background:var(--bad);border-color:var(--bad)}
+.exq{background:var(--sheet);border:1px solid var(--rule);border-radius:4px;padding:18px 20px;margin-bottom:12px;min-width:0;scroll-margin-top:220px}
+.exq .hd{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:baseline;justify-content:space-between;margin-bottom:8px}
+.exq .qn{font-size:1.25rem;font-weight:700;color:var(--red);margin-right:8px}
+.exq .src{font-size:.84rem;color:var(--muted)}
+.exq p.st{font-family:var(--f-text);font-size:1.06rem;line-height:1.6;font-weight:400;margin-bottom:12px;max-width:70ch}
+.opt{position:relative;display:flex;gap:12px;align-items:flex-start;padding:8px 10px;border-radius:4px;border:1px solid transparent;cursor:pointer;font-family:var(--f-text);font-size:1rem;line-height:1.5}
+.opt:hover{background:var(--paper)}
+.opt input{position:absolute;opacity:0;width:1px;height:1px;margin:0}
+.opt .l{flex:none;display:grid;place-items:center;width:26px;height:26px;border-radius:50%;border:1.5px solid var(--red);color:var(--red);font:600 .82rem/1 var(--f-ui);margin-top:-1px;transition:background .12s ease,color .12s ease,border-color .12s ease}
+.opt:has(input:checked) .l{background:var(--pen);border-color:var(--pen);color:#fff}
+.opt:has(input:focus-visible){outline:2px solid var(--pen);outline-offset:1px}
+.opt.ok{border-color:var(--good);background:var(--good-tint)}
+.opt.ok .l{background:var(--good);border-color:var(--good);color:#fff}
+.opt.ko{border-color:var(--bad);background:var(--bad-tint)}
+.opt.ko .l{background:var(--bad);border-color:var(--bad);color:#fff}
+.opt .mk{margin-left:auto;font:700 .82rem var(--f-ui);white-space:nowrap;padding-left:8px}
+.opt.ok .mk{color:var(--good)}.opt.ko .mk{color:var(--bad)}
+.flag{font-size:.8rem;padding:4px 10px}
+.flag[aria-pressed="true"]{border-color:var(--flag);color:var(--flag);font-weight:600}
+.res-ok{color:var(--good);font-weight:700}.res-ko{color:var(--bad);font-weight:700}.res-bl{color:var(--muted);font-weight:700}
+.scorebig{display:flex;flex-wrap:wrap;gap:18px 36px;align-items:flex-end}
+.scorebig .n{font-size:4rem;font-weight:700;line-height:.95;letter-spacing:-.03em;color:var(--pen)}
+.scorebig .eyebrow{color:var(--ink-2);font-weight:500}
+.verdict{display:inline-flex;gap:6px;align-items:center;font-weight:600;padding:4px 12px;border-radius:14px;border:1.5px solid currentColor;width:fit-content}
+.explica{margin-top:12px;padding:12px 14px;border-left:3px solid var(--pen);background:var(--pen-tint);font-family:var(--f-text);font-size:.98rem;line-height:1.6;white-space:pre-wrap}
+.ai-badge{font-size:.76rem;font-weight:600;color:var(--s2);border:1px solid currentColor;padding:1px 6px;border-radius:3px}
+.resume{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between;padding:12px 14px;margin-bottom:14px;border:1px solid var(--pen);border-left-width:4px;border-radius:4px;background:var(--pen-tint)}
+.resume p{max-width:none}.resume .acc{display:flex;gap:8px;flex-wrap:wrap}
+.cuenta{font-weight:600;color:var(--red)}
+.pkpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:10px 0 4px}
+.pkpis div{display:grid;gap:2px}.pkpis b{font-size:1.45rem;line-height:1.1}.pkpis span{font-size:.82rem;color:var(--ink-2)}
+.prio{width:100%;font-size:.88rem}.prio td{vertical-align:middle}
+.prio .pb{height:8px;border-radius:4px;background:var(--rule);overflow:hidden;min-width:60px}.prio .pb i{display:block;height:100%;background:var(--red)}
+.prio button,.tfallo button{font-size:.78rem;padding:3px 9px}
+.tfallo{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+.tfallo li{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;justify-content:space-between;font-size:.9rem;border-bottom:1px solid var(--rule);padding:4px 0}
+.spark{display:block;width:100%;max-width:520px;height:auto}
+.bk{display:grid;grid-template-columns:minmax(140px,260px) 1fr 6.5rem;gap:10px;align-items:center;font-size:.88rem;padding:4px 0}
+.bk .track{height:10px;background:var(--rule);border-radius:4px;overflow:hidden}.bk .track i{display:block;height:100%;background:var(--pen)}
+footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8px;border-top:1px solid var(--red-2)}
+@media (max-width:600px){.hbar{grid-template-columns:110px 1fr 2.8rem}.kpi + .kpi{border-left:0;padding-left:0}.kpi{border-bottom:1px solid var(--red-tint)}.exq{padding:14px}.scorebig .n{font-size:3.2rem}.sheet{max-height:96px}
+  .exbar{padding:8px 10px;gap:6px}.exbar .row{gap:6px}.exbar #ex-progress{flex-basis:100%;order:-1;font-size:.88rem}
+  .exbar .row button{font-size:.8rem;padding:6px 9px}#ex-timer{font-size:.95rem;margin-right:auto}}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+</style>
+<link rel="stylesheet" href="cuenta.css">
+</head>
+<body>
+
+
+<div id="portal" hidden>
+  <div class="wrap" style="padding-block:48px 64px;display:grid;gap:22px">
+    <h1>¿Qué oposición preparas?</h1>
+    <p class="lede ink2" style="font-size:1.1rem">Exámenes oficiales analizados pregunta a pregunta, con simulacros corregidos con la plantilla del tribunal. Elige una oposición; puedes cambiar cuando quieras.</p>
+    <div class="opgrid" id="op-cards"></div>
+  </div>
+</div>
+<nav class="toc" aria-label="Secciones"><div class="in">
+  <a href="#inicio" id="nav-cambiar">← Oposiciones</a>
+  <a href="#resumen">Resumen</a><a href="#examenes" style="color:var(--pen);font-weight:600">Exámenes</a><a href="#temas">Temas</a><a href="#normas" id="nav-normas">Leyes y artículos</a>
+  <a href="#repetidas">Preguntas repetidas</a><a href="#formato" id="nav-formato">Formato y notas de corte</a>
+  <a href="#banco">Banco de preguntas</a><a href="#metodo">Método y fuentes</a>
+</div></nav>
+
+<div class="wrap" id="main">
+<header class="hero" id="resumen">
+  <span class="eyebrow" id="h-eyebrow"></span>
+  <h1 id="h-title"></h1>
+  <p class="lede" id="h-lede"></p>
+  <p class="cuenta" id="h-cuenta" hidden></p>
+  <div class="kpis" id="kpis"></div>
+  <div class="panel" style="margin-top:14px">
+    <h3 style="margin-bottom:10px">Lo que dicen los datos</h3>
+    <ol class="takeaways" id="takeaways"></ol>
+  </div>
+</header>
+
+<section id="examenes">
+  <header><h2>Exámenes de práctica corregidos</h2>
+  <p class="ink2" id="ex-intro"></p></header>
+
+  <div class="panel" id="ex-config">
+    <div class="resume" id="ex-curso" hidden></div>
+    <div class="modes" role="radiogroup" aria-label="Tipo de examen">
+      <label class="mode"><input type="radio" name="modo" value="sim" checked><span><b>Simulacro oficial</b><small id="sim-desc"></small></span></label>
+      <label class="mode"><input type="radio" name="modo" value="rapido"><span><b>Test rápido</b><small>De 20 a 60 preguntas al azar</small></span></label>
+      <label class="mode"><input type="radio" name="modo" value="tema"><span><b>Por bloque o tema</b><small>Céntrate en lo que más fallas</small></span></label>
+      <label class="mode"><input type="radio" name="modo" value="fallos"><span><b>Repasar mis fallos</b><small id="fallos-n">Preguntas que has fallado antes</small></span></label>
+      <label class="mode" id="mode-ia"><input type="radio" name="modo" value="ia"><span><b>Preguntas nuevas de Claude</b><small>Claude redacta 10 preguntas inéditas de un tema</small></span></label>
+    </div>
+    <div class="controls" style="margin-top:14px">
+      <label for="ex-n" id="lb-n">Nº de preguntas<select id="ex-n"><option>20</option><option selected>40</option><option>60</option></select></label>
+      <label for="ex-tema" id="lb-tema">Bloque o tema<select id="ex-tema"></select></label>
+      <label for="ex-crono" class="check"><input type="checkbox" id="ex-crono" checked> Con cronómetro</label>
+      <label for="ex-nuevas" class="check"><input type="checkbox" id="ex-nuevas"> Evitar preguntas ya hechas</label>
+    </div>
+    <div class="controls" style="margin-top:14px;justify-content:space-between">
+      <button class="primary" id="ex-start">Empezar examen</button>
+      <span class="note" id="ex-pool"></span>
+    </div>
+    <p class="note" id="ia-status" style="margin-top:8px"></p>
+  </div>
+  <div class="panel" id="ex-prog">
+    <div class="controls" style="justify-content:space-between;align-items:baseline"><h3>Tu progreso</h3><span class="note">Se guarda solo en este navegador</span></div>
+    <div id="prog-body"></div>
+    <div id="ex-hist" style="margin-top:16px"></div>
+  </div>
+
+  <div id="ex-run" hidden>
+    <div class="exbar">
+      <div class="row">
+        <span id="ex-progress"></span>
+        <span id="ex-timer"></span>
+        <button id="ex-sheet-toggle" aria-expanded="true" aria-controls="ex-sheet">Ocultar hoja</button>
+        <button id="ex-cancel">Abandonar</button>
+        <button class="primary" id="ex-submit">Entregar y corregir</button>
+      </div>
+      <div class="sheet" id="ex-sheet" aria-label="Hoja de respuestas: pulsa un número para ir a la pregunta"></div>
+    </div>
+    <div id="ex-qs"></div>
+    <div class="controls" style="margin-top:16px"><button class="primary" id="ex-submit2">Entregar y corregir</button></div>
+  </div>
+
+  <div id="ex-res" hidden>
+    <div class="panel" id="ex-score"></div>
+    <div class="controls" style="margin:14px 0">
+      <label for="ex-filtro">Mostrar<select id="ex-filtro"><option value="mal">Fallos y en blanco</option><option value="todas">Todas</option></select></label>
+      <button id="ex-new">Hacer otro examen</button>
+    </div>
+    <div id="ex-review"></div>
+  </div>
+</section>
+
+<section id="temas">
+  <header><h2>¿De qué temas caen las preguntas?</h2>
+  <p class="ink2" id="temas-intro"></p></header>
+  <div class="panel">
+    <h3>Peso de cada bloque del programa en el test</h3>
+    <p class="note" style="margin:4px 0 10px">% de preguntas del test de cada convocatoria. Entre paréntesis, el peso del bloque en número de temas del programa actual.</p>
+    <div class="legend" id="lg-bloques"></div>
+    <div class="scroll"><svg id="ch-bloques" role="img" aria-label="Porcentaje de preguntas por bloque y convocatoria"></svg></div>
+  </div>
+  <div class="panel">
+    <div class="controls" style="justify-content:space-between">
+      <div><h3>Mapa de calor: preguntas por tema y convocatoria</h3>
+      <p class="note" style="margin-top:4px" id="heat-note"></p></div>
+      <label for="sel-orden">Ordenar
+        <select id="sel-orden"><option value="prog">Por orden del programa</option><option value="rec" id="opt-rec">Más preguntados (recientes)</option><option value="tot">Más preguntados (total)</option></select></label>
+    </div>
+    <div class="legend" id="lg-heat" style="margin-top:10px"></div>
+    <div class="scroll" style="margin-top:8px"><table class="heat" id="tb-heat"></table></div>
+  </div>
+  <div class="panel" id="panel-prac">
+    <h3>Supuestos prácticos (2018–2025): temas más usados</h3>
+    <p class="note" style="margin:4px 0 10px">Solo las preguntas que el texto disponible permitió extraer, unas 270 de unas 350, así que la muestra es parcial.</p>
+    <div id="ch-prac"></div>
+  </div>
+</section>
+
+<section id="normas">
+  <header><h2 id="normas-title"></h2>
+  <p class="ink2" id="normas-intro"></p></header>
+  <div class="grid2">
+    <div class="panel"><h3 id="normas-h3"></h3><div id="ch-normas" style="margin-top:10px"></div></div>
+    <div class="panel" id="panel-literal"><h3>% de preguntas que citan un artículo concreto</h3>
+      <p class="note" style="margin:4px 0 10px">Sube con fuerza hasta la OEP 2018 y cae en el último examen (OEP 2025).</p>
+      <svg id="ch-literal" role="img" aria-label="Porcentaje de preguntas que citan un artículo por convocatoria"></svg></div>
+  </div>
+  <div class="panel">
+    <div class="controls" style="justify-content:space-between"><h3 id="arts-h3">Los artículos que más caen</h3>
+      <label for="sel-norma" id="lb-norma">Norma <select id="sel-norma"></select></label></div>
+    <div class="scroll" style="margin-top:10px"><table id="tb-arts"></table></div>
+  </div>
+</section>
+
+<section id="repetidas">
+  <header><h2>¿Se repiten las preguntas?</h2>
+  <p class="ink2" id="rep-intro">Se compararon todas las preguntas entre convocatorias distintas por su vocabulario (enunciado + opciones). Un parecido ≥ 0,55 es una pregunta casi literal; entre 0,38 y 0,55, la misma cuestión redactada de otra forma. Se agrupan las que comparten pareja.</p></header>
+  <div class="kpis" id="kpi-rep"></div>
+  <div class="panel">
+    <div class="controls" style="justify-content:space-between"><h3>Grupos de preguntas que vuelven</h3>
+      <label for="sel-rep">Bloque <select id="sel-rep"><option value="">Todos</option></select></label></div>
+    <p class="note" style="margin:4px 0 6px">Ordenados por nº de convocatorias en que aparecen. Pulsa un grupo para ver las preguntas.</p>
+    <div id="lst-rep"></div>
+    <button id="btn-rep" style="margin-top:12px">Mostrar más</button>
+  </div>
+</section>
+
+<section id="formato">
+  <header><h2 id="formato-title">¿Cómo ha cambiado el examen y la nota de corte?</h2>
+  <p class="ink2" id="formato-intro"></p></header>
+  <div class="panel" id="formato-extra" hidden></div>
+  <div class="grid2" id="grid-cortes">
+    <div class="panel"><h3>Nota de corte como % del máximo</h3>
+      <div class="legend" id="lg-corte" style="margin-top:8px"></div>
+      <svg id="ch-corte" role="img" aria-label="Nota de corte en porcentaje por convocatoria"></svg>
+      <p class="note">En 2007–2009 el corte coincidió con el mínimo (50 %) porque había más plazas que aprobados.</p></div>
+    <div class="panel"><h3>Presentados por plaza</h3>
+      <svg id="ch-ratio" role="img" aria-label="Presentados por plaza en cada convocatoria"></svg>
+      <p class="note">2012 y 2013 sin convocatoria. En 2006 y 2007 no hay dato de presentados.</p></div>
+  </div>
+  <div class="panel" id="panel-conv"><h3>Ficha de cada convocatoria</h3>
+    <div class="scroll" style="margin-top:10px"><table id="tb-conv"></table></div></div>
+</section>
+
+<section id="banco">
+  <header><h2>Banco de preguntas</h2>
+  <p class="ink2">Todas las preguntas extraídas, con su tema asignado. Filtra para repasar un tema concreto a lo largo de los años. Las que tienen plantilla oficial muestran la respuesta al pulsar «Ver respuesta». Parte del texto procede de OCR y puede tener erratas.</p></header>
+  <div class="panel">
+    <div class="controls">
+      <label for="f-q">Buscar<input type="search" id="f-q" placeholder="Busca una palabra o un artículo"></label>
+      <label for="f-tema">Tema<select id="f-tema"><option value="">Todos</option></select></label>
+      <label for="f-ano">Convocatoria<select id="f-ano"><option value="">Todas</option></select></label>
+      <label for="f-parte" id="lb-parte">Parte<select id="f-parte"><option value="">Test y supuestos</option><option value="T">Test</option><option value="S">Supuestos</option></select></label>
+      <label for="f-resp" class="check"><input type="checkbox" id="f-resp"> Solo con respuesta oficial</label>
+    </div>
+    <p class="note" id="f-count" style="margin-top:10px"></p>
+    <div id="lst-banco"></div>
+    <div class="controls" style="margin-top:12px"><button id="pg-prev">Anterior</button><span class="note" id="pg-info"></span><button id="pg-next">Siguiente</button></div>
+  </div>
+</section>
+
+<section id="metodo">
+  <header><h2>Método, límites y fuentes</h2></header>
+  <div id="metodo-body" style="display:grid;gap:18px"></div>
+</section>
+<footer><span id="pie"></span></footer>
+</div>
+<div class="tip" id="tip" hidden></div>
+
+<script src="vendor/supabase.js"></script>
+<script src="config.js"></script>
+<script src="cuenta.js"></script>
+<script src="cargador.js"></script>
+</body>
+</html>
