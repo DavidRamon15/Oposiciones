@@ -339,10 +339,11 @@ const tituloTema = f => TEMAS[f.k] || f.o || "";
 $("#tm-intro").textContent = `Los ${PROG.length} temas del programa, con las leyes que entran y lo que más se pregunta de cada uno.`;
 if (C.programaFuente) { $("#tm-fuente").textContent = C.programaFuente[0]; $("#tm-fuente").href = C.programaFuente[1]; }
 // los PDF se generan al construir la web (generar_pdfs.py, con el mismo diseño de impresión) y aquí solo se enlazan
-const PDFS = C.pdfs, kb = n => n >= 1024 ? fmt(n / 1024, 1) + " MB" : fmt(n) + " KB";
+// en la versión de Claude los PDF son de la web publicada: ahí un enlace de descarga no hace nada, así que se abren en otra pestaña
+const PDFS = C.pdfs, PDF_LOCAL = PDFS && !/^https?:/.test(PDFS.base), kb = n => n >= 1024 ? fmt(n / 1024, 1) + " MB" : fmt(n) + " KB";
 const nombrePdf = f => `${C.nombreCorto} - Tema ${f.k} - ${tituloTema(f).replace(/[\\/:*?"<>|]/g, "").slice(0, 80)}.pdf`;
 function pdfFicha(f) { const t = PDFS?.fichas?.[f.k];
-  return t ? `<a class="boton" href="${PDFS.base}${f.k}.pdf" download="${esc(nombrePdf(f))}" target="_blank" rel="noopener">Descargar en PDF <span class="note">(${kb(t)})</span></a>` : ""; }
+  return t ? `<a class="boton" href="${PDFS.base}${f.k}.pdf"${PDF_LOCAL ? ` download="${esc(nombrePdf(f))}"` : ""} target="_blank" rel="noopener">Descargar en PDF <span class="note">(${kb(t)})</span></a>` : ""; }
 function fichaHTML(f) { const t = tm[f.k], pct = t ? t.pct_ultimos : null, n = pregTema[f.k] || 0;
   const aprox = pct ? Math.round(pct * C.simN / 100) : 0, maxPct = Math.max(...temasR.map(x => x.pct_ultimos)) || 1;
   const prog = f.t ? `<p class="oficial">${esc(f.t)}</p>` : `<ul class="prog">${f.l.map(([nv, x]) => `<li data-n="${nv}">${esc(x)}</li>`).join("")}</ul>`;
@@ -373,7 +374,7 @@ function drawTemario() { const q = normTxt($("#tm-q").value.trim()), orden = $("
 $("#tm-q").addEventListener("input", drawTemario); $("#tm-orden").addEventListener("change", drawTemario);
 if (PROG.length) drawTemario(); else { $("#temario").remove(); document.querySelector('nav.toc [data-sec="temario"]')?.remove(); }
 if (/^ficha-/.test(location.hash.slice(1))) mostrarVista(location.hash.slice(1));   // enlace directo a un tema: las fichas no existían al arrancar
-if (PDFS?.todo) { Object.assign($("#tm-pdf"), {href: PDFS.base + "temario.pdf", target: "_blank", rel: "noopener"}); $("#tm-pdf").download = `Temario de ${C.nombreCorto}.pdf`;
+if (PDFS?.todo) { Object.assign($("#tm-pdf"), {href: PDFS.base + "temario.pdf", target: "_blank", rel: "noopener"}); if (PDF_LOCAL) $("#tm-pdf").download = `Temario de ${C.nombreCorto}.pdf`;
   $("#tm-pdf-t").textContent = `PDF, ${kb(PDFS.todo)}`; } else $("#tm-pdf").hidden = true;
 // ?pdf=D12 (o ?pdf=todo): la página queda como la imprime generar_pdfs.py, con solo esa ficha (o todas) abierta
 function prepararPdf(ks) { const fichas = [...document.querySelectorAll("#tm-lista .ficha")].filter(d => !ks || ks.includes(d.dataset.k));
