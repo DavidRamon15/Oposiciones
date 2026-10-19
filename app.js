@@ -26,11 +26,32 @@ const bloqueDe = t => C.temaBloque[t] || "Otros";
 /* ---------- portada y selección de oposición ---------- */
 function elegirOp(k) { try { localStorage.setItem("opos-sel", k); } catch (e) { /* sin almacenamiento */ } location.hash = k; location.reload(); }
 const diasHasta = f => f ? Math.ceil((new Date(f + "T09:00:00") - new Date()) / 86400000) : -1;
-$("#op-cards").innerHTML = Object.entries(OPS).map(([k, o]) => { const d = diasHasta(o.cfg.fechaExamen);
-  return `<button class="opcard" data-k="${k}"><span class="eyebrow">${esc(o.cfg.cuerpo)}</span><h2>${esc(o.cfg.nombre)}</h2>
-  <span class="ink2">${esc(o.cfg.resumen)}</span>${d >= 0 ? `<span class="cuenta">${d === 0 ? "El examen es hoy" : `Examen en ${d} día${d === 1 ? "" : "s"}: ${esc(o.cfg.fechaExamenTexto)}`}</span>` : ""}
-  <span class="meta">${o.cfg.chips.map(c => `<span class="chip">${esc(c)}</span>`).join("")}</span><span class="go">Entrar →</span></button>`; }).join("");
-$("#op-cards").querySelectorAll(".opcard").forEach(b => b.onclick = () => elegirOp(b.dataset.k));
+const OPL = Object.entries(OPS), LETRA = "ABCDEFGH";
+const miles = n => String(n).replace(/(\d)(?=(\d{3})+$)/g, "$1.");   // 2.573 también con cuatro cifras, como en el resto de la web
+$("#pt-burbujas").insertAdjacentHTML("beforeend", OPL.map(([k, o], i) =>
+  `<a class="pt-op" href="#${k}" data-k="${k}"><span class="pt-b" aria-hidden="true">${LETRA[i]}</span>${esc(o.cfg.nombreCorto)}</a>`).join(""));
+const totP = OPL.reduce((x, [, o]) => x + (o.cfg.portada?.[1]?.[0] || 0), 0), totC = OPL.reduce((x, [, o]) => x + (o.cfg.portada?.[0]?.[0] || 0), 0);
+$("#pt-lede").innerHTML = `<b>${miles(totP)} preguntas</b> de ${totC} exámenes oficiales, analizadas una a una: qué temas caen, qué leyes se repiten y simulacros corregidos con la plantilla del tribunal. Puedes cambiar de oposición cuando quieras.`;
+$("#op-cards").innerHTML = OPL.map(([k, o], i) => { const c = o.cfg, d = diasHasta(c.fechaExamen), nop = c.nOpciones || 4;
+  return `<article class="opcard" data-k="${k}">
+    <div class="oc-top"><div class="oc-cab"><span class="pt-b" aria-hidden="true">${LETRA[i]}</span><span class="oc-cuerpo">${esc(c.cuerpo)}</span></div>
+    <h2>${esc(c.nombre)}</h2><p class="oc-res">${esc(c.resumen)}</p>
+    ${d >= 0 ? `<p class="cuenta">${d === 0 ? "El examen es hoy" : `Examen en ${d} día${d === 1 ? "" : "s"}: ${esc(c.fechaExamenTexto)}`}</p>` : ""}</div>
+    ${c.portada ? `<dl class="oc-cifras">${c.portada.map(([n, t]) => `<div><dt>${esc(t)}</dt><dd>${miles(n)}</dd></div>`).join("")}</dl>` : ""}
+    <p class="oc-formato"><b>El test:</b> ${c.simN} preguntas de ${nop} opciones en ${c.simMin} minutos; cada fallo resta 1/${nop - 1} de acierto.</p>
+    <button class="primary oc-ir" data-k="${k}">Entrar en ${esc(c.nombreCorto)}</button></article>`; }).join("");
+$("#op-cards").querySelectorAll(".opcard").forEach(card => card.onclick = () => elegirOp(card.dataset.k));
+$("#pt-burbujas").querySelectorAll(".pt-op").forEach(a => {
+  const card = $(`#op-cards .opcard[data-k="${a.dataset.k}"]`);
+  a.onclick = e => { e.preventDefault(); elegirOp(a.dataset.k); };
+  ["mouseenter", "focus"].forEach(ev => a.addEventListener(ev, () => card.classList.add("resaltada")));
+  ["mouseleave", "blur"].forEach(ev => a.addEventListener(ev, () => card.classList.remove("resaltada"))); });
+$("#pt-que").innerHTML = [
+  ["Simulacros corregidos", "Exámenes reales con la plantilla oficial del tribunal: tu nota, lo que fallas y la respuesta correcta de cada pregunta."],
+  ["Lo que más cae", "Cada pregunta clasificada por tema y por ley, para saber dónde se concentra el examen y qué se repite."],
+  ["Qué repasar primero", "Tu acierto por tema cruzado con lo que pesa cada tema en el examen real."],
+  ...(window.CONFIG?.supabaseUrl ? [["Con tu preparador", "Con una cuenta gratuita tu progreso va contigo a cualquier dispositivo y tu preparador puede seguirlo y ponerte tareas."]] : [])
+].map(([t, x]) => `<li><b>${t}</b><span>${x}</span></li>`).join("");
 $("#nav-cambiar").onclick = e => { e.preventDefault(); location.hash = "inicio"; location.reload(); };
 
 /* ---------- menú superior ---------- */

@@ -102,12 +102,12 @@
     // botón de cuenta: en la barra de secciones y en la portada
     // fuera del carril desplazable de secciones, para que siempre se vea
     (q("#nav-cuenta") || q("nav.toc"))?.insertAdjacentHTML("beforeend", `<span class="cu-sitio" id="cu-nav"></span>`);
-    q("#portal .wrap")?.insertAdjacentHTML("afterbegin", `<div class="cu-portal" id="cu-portal"></div>`);
+    (q("#portal-cuenta") || q("#portal .wrap"))?.insertAdjacentHTML("afterbegin", `<div class="cu-portal" id="cu-portal"></div>`);
     document.body.insertAdjacentHTML("beforeend", `
       <div class="cu-aviso" id="cu-aviso" role="status" aria-live="polite" hidden></div>
       <dialog class="cu-dlg" id="cu-dlg" aria-labelledby="cu-dlg-t"><form method="dialog" class="cu-cerrar"><button aria-label="Cerrar">×</button></form><div id="cu-dlg-c"></div></dialog>`);
-    q("footer")?.insertAdjacentHTML("beforeend", `<span><a href="#privacidad" id="cu-priv-link">Privacidad y datos personales</a></span>`);
-    q("#cu-priv-link")?.addEventListener("click", e => { e.preventDefault(); verPrivacidad(); });
+    document.querySelectorAll("footer").forEach(f => f.insertAdjacentHTML("beforeend", `<span><a href="#privacidad" class="cu-priv-link">Privacidad y datos personales</a></span>`));
+    document.querySelectorAll(".cu-priv-link").forEach(a => a.addEventListener("click", e => { e.preventDefault(); verPrivacidad(); }));
     document.addEventListener("click", e => {
       const b = e.target.closest("[data-cu]"); if (!b) return;
       const a = b.dataset.cu;
