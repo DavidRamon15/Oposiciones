@@ -165,7 +165,9 @@ details.ficha[open] > summary::after{content:"−"}
   body.imprimiendo .ficha-acc,body.imprimiendo .an-tabs{display:none!important}
   body.imprimiendo #main > #temario{display:block!important;padding:0}
   body.imprimiendo .tm-panel{border:0;box-shadow:none;padding:0}
-  body.imprimiendo .ficha{break-inside:avoid-page;border-bottom:1px solid #999}
+  body.imprimiendo .ficha{border-bottom:1px solid #999}   /* una ficha larga sí se parte: si no, deja una página casi en blanco */
+  body.imprimiendo .tm-grupo,body.imprimiendo .ficha > summary,body.imprimiendo .ficha-cuerpo h4{break-after:avoid}
+  body.imprimiendo .ficha-cifras{break-inside:avoid}
   body.imprimiendo .ficha > summary::after{content:none}
   body.imprimiendo .leyes li{break-inside:avoid}
   body.imprimiendo a{color:#1c2541}
@@ -224,8 +226,9 @@ details.rep summary b{font-family:var(--f-text);font-weight:600;font-size:1rem}
 .controls select{width:100%;max-width:min(100%,460px);text-overflow:ellipsis}
 select,input[type=search]{font:inherit;font-size:.92rem;padding:8px 10px;border:1px solid var(--axis);border-radius:8px;background:var(--sheet);color:var(--ink);max-width:100%}
 input[type=search]{min-width:min(100%,260px)}
-button{font:500 .9rem var(--f-ui);padding:8px 14px;border:1px solid var(--axis);border-radius:8px;background:var(--sheet);color:var(--ink);cursor:pointer}
-button:hover{border-color:var(--ink-2)}
+button,a.boton{font:500 .9rem var(--f-ui);padding:8px 14px;border:1px solid var(--axis);border-radius:8px;background:var(--sheet);color:var(--ink);cursor:pointer}
+button:hover,a.boton:hover{border-color:var(--ink-2)}
+a.boton{display:inline-block;text-decoration:none;line-height:1.2}
 button[disabled]{opacity:.45;cursor:default}
 svg text{font-family:var(--f-ui)}
 .tip{position:fixed;z-index:20;pointer-events:none;background:var(--ink);color:var(--paper);font-size:.82rem;line-height:1.35;padding:7px 9px;border-radius:4px;max-width:280px;box-shadow:0 4px 14px rgba(0,0,0,.18)}
@@ -298,8 +301,8 @@ svg text{font-family:var(--f-ui)}
 .mode span{display:grid;gap:2px}.mode small{color:var(--ink-2);font-size:.82rem;line-height:1.35}
 label.check{display:flex;flex-direction:row;align-items:center;gap:6px;font-size:.88rem;color:var(--ink-2)}
 label.check input{accent-color:var(--pen)}
-button.primary{background:var(--pen);border-color:var(--pen);color:#fff;font-weight:600}
-button.primary:hover{filter:brightness(1.1)}
+button.primary,a.boton.primary{background:var(--pen);border-color:var(--pen);color:#fff;font-weight:600}
+button.primary:hover,a.boton.primary:hover{filter:brightness(1.1)}
 .exbar{position:sticky;top:calc(env(safe-area-inset-top,0px) + var(--nav-h) + 1px);z-index:4;display:grid;gap:8px;background:var(--sheet);border:1px solid var(--rule);border-top:3px solid var(--red);border-radius:2px 2px 4px 4px;padding:10px 14px;margin-bottom:14px;box-shadow:0 8px 20px -18px rgba(30,36,48,.5)}
 .exbar .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .exbar #ex-progress{flex:1;min-width:140px;font-weight:500}
@@ -560,8 +563,8 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
   <p class="ink2" id="tm-intro"></p>
   <details class="como"><summary>De dónde sale cada dato</summary><p>El texto de cada tema es el del programa oficial (<a id="tm-fuente" target="_blank" rel="noopener"></a>). Las leyes salen del propio programa y, cuando hay datos, de los artículos que citan las preguntas de ese tema. Los enlaces llevan al texto consolidado del BOE, gratuito y siempre al día.</p></details>
   <div class="controls tm-acc">
-    <button class="primary" id="tm-pdf">Descargar el temario en PDF</button>
-    <span class="note">Se abre la ventana de imprimir: elige «Guardar como PDF».</span>
+    <a class="boton primary" id="tm-pdf">Descargar el temario en PDF</a>
+    <span class="note" id="tm-pdf-t"></span>
   </div></header>
   <div class="panel tm-panel">
     <div class="controls">

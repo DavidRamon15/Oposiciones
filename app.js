@@ -338,6 +338,11 @@ const pregTema = {}; D.banco.forEach(b => pregTema[b[3]] = (pregTema[b[3]] || 0)
 const tituloTema = f => TEMAS[f.k] || f.o || "";
 $("#tm-intro").textContent = `Los ${PROG.length} temas del programa, con las leyes que entran y lo que más se pregunta de cada uno.`;
 if (C.programaFuente) { $("#tm-fuente").textContent = C.programaFuente[0]; $("#tm-fuente").href = C.programaFuente[1]; }
+// los PDF se generan al construir la web (generar_pdfs.py, con el mismo diseño de impresión) y aquí solo se enlazan
+const PDFS = C.pdfs, kb = n => n >= 1024 ? fmt(n / 1024, 1) + " MB" : fmt(n) + " KB";
+const nombrePdf = f => `${C.nombreCorto} - Tema ${f.k} - ${tituloTema(f).replace(/[\\/:*?"<>|]/g, "").slice(0, 80)}.pdf`;
+function pdfFicha(f) { const t = PDFS?.fichas?.[f.k];
+  return t ? `<a class="boton" href="${PDFS.base}${f.k}.pdf" download="${esc(nombrePdf(f))}" target="_blank" rel="noopener">Descargar en PDF <span class="note">(${kb(t)})</span></a>` : ""; }
 function fichaHTML(f) { const t = tm[f.k], pct = t ? t.pct_ultimos : null, n = pregTema[f.k] || 0;
   const aprox = pct ? Math.round(pct * C.simN / 100) : 0, maxPct = Math.max(...temasR.map(x => x.pct_ultimos)) || 1;
   const prog = f.t ? `<p class="oficial">${esc(f.t)}</p>` : `<ul class="prog">${f.l.map(([nv, x]) => `<li data-n="${nv}">${esc(x)}</li>`).join("")}</ul>`;
@@ -351,7 +356,7 @@ function fichaHTML(f) { const t = tm[f.k], pct = t ? t.pct_ultimos : null, n = p
       ${t ? `<div class="ficha-cifras"><span><b>${fmt(pct, 1)} %</b>del examen (${C.recienteLabel})${aprox ? `, unas ${aprox} pregunta${aprox === 1 ? "" : "s"} de ${C.simN}` : ""}</span>
         <span><b>${t.anos_presente ?? Object.values(t.por_ano).filter(Boolean).length} de ${ANOS.length}</b>exámenes en los que ha salido</span><span><b>${fmt(n)}</b>preguntas en el banco</span></div>` : ""}
       ${f.leyes.length ? `<div><h4>Leyes que entran</h4><ul class="leyes">${leyes}</ul></div>` : ""}
-      <div class="ficha-acc">${poolTemaN(f.k) ? `<button class="primary" data-practicar="${f.k}">Practicar este tema</button>` : ""}${n ? `<button data-banco-tema="${f.k}">Ver sus preguntas</button>` : ""}<button data-pdf-tema="${f.k}">Descargar en PDF</button></div>
+      <div class="ficha-acc">${poolTemaN(f.k) ? `<button class="primary" data-practicar="${f.k}">Practicar este tema</button>` : ""}${n ? `<button data-banco-tema="${f.k}">Ver sus preguntas</button>` : ""}${pdfFicha(f)}</div>
     </div></details>`; }
 const poolTemaN = k => D.examen.filter(q => q.tema === k).length;
 const bloqueFicha = f => C.temaBloque[f.k] || "Otras pruebas", ORDEN_BLOQUE = [...new Set(PROG.map(bloqueFicha))];
@@ -368,18 +373,17 @@ function drawTemario() { const q = normTxt($("#tm-q").value.trim()), orden = $("
 $("#tm-q").addEventListener("input", drawTemario); $("#tm-orden").addEventListener("change", drawTemario);
 if (PROG.length) drawTemario(); else { $("#temario").remove(); document.querySelector('nav.toc [data-sec="temario"]')?.remove(); }
 if (/^ficha-/.test(location.hash.slice(1))) mostrarVista(location.hash.slice(1));   // enlace directo a un tema: las fichas no existían al arrancar
-// «Descargar en PDF»: se imprime solo lo elegido (una ficha o todas, abiertas) y el navegador lo guarda como PDF
-function imprimirFichas(ks) { const fichas = [...document.querySelectorAll("#tm-lista .ficha")].filter(d => !ks || ks.includes(d.dataset.k));
-  const abiertas = fichas.map(d => d.open); fichas.forEach(d => { d.open = true; d.classList.add("imprimir"); });
+if (PDFS?.todo) { Object.assign($("#tm-pdf"), {href: PDFS.base + "temario.pdf", target: "_blank", rel: "noopener"}); $("#tm-pdf").download = `Temario de ${C.nombreCorto}.pdf`;
+  $("#tm-pdf-t").textContent = `PDF, ${kb(PDFS.todo)}`; } else $("#tm-pdf").hidden = true;
+// ?pdf=D12 (o ?pdf=todo): la página queda como la imprime generar_pdfs.py, con solo esa ficha (o todas) abierta
+function prepararPdf(ks) { const fichas = [...document.querySelectorAll("#tm-lista .ficha")].filter(d => !ks || ks.includes(d.dataset.k));
+  fichas.forEach(d => { d.open = true; d.classList.add("imprimir"); });
   document.querySelectorAll("#tm-lista .tm-grupo").forEach(h => { let e = h.nextElementSibling;
     while (e && !e.matches(".tm-grupo")) { if (e.classList.contains("imprimir")) { h.classList.add("imprimir"); break; } e = e.nextElementSibling; } });
-  document.body.classList.add("imprimiendo");
-  const fin = () => { document.body.classList.remove("imprimiendo"); document.querySelectorAll("#tm-lista .imprimir").forEach(e => e.classList.remove("imprimir"));
-    fichas.forEach((d, i) => d.open = abiertas[i]); removeEventListener("afterprint", fin); };
-  addEventListener("afterprint", fin); print(); }
-$("#tm-pdf").addEventListener("click", () => { if ($("#tm-q").value) { $("#tm-q").value = ""; drawTemario(); } imprimirFichas(null); });
-document.addEventListener("click", e => { const b = e.target.closest("[data-pdf-tema], [data-banco-tema]"); if (!b) return;
-  if (b.dataset.pdfTema) return imprimirFichas([b.dataset.pdfTema]);
+  document.body.classList.add("imprimiendo"); }
+const PARAM_PDF = new URLSearchParams(location.search).get("pdf");
+if (PARAM_PDF && PROG.length) prepararPdf(PARAM_PDF === "todo" ? null : [PARAM_PDF]);
+document.addEventListener("click", e => { const b = e.target.closest("[data-banco-tema]"); if (!b) return;
   $("#f-tema").value = b.dataset.bancoTema; ["#f-q", "#f-ano"].forEach(s => $(s).value = ""); filterBanco(); location.hash = "banco"; });
 
 /* ================= EXÁMENES ================= */
