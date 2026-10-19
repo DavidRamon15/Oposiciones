@@ -130,6 +130,48 @@ details.como p{margin-top:6px;max-width:72ch}
 .seguir a{display:grid;gap:4px;padding:16px 18px;border:1px solid var(--rule);border-radius:var(--radio);background:var(--sheet);box-shadow:var(--sombra);color:var(--ink);text-decoration:none}
 .seguir a:hover{border-color:var(--red)}
 .seguir b{font-size:1.05rem}.seguir span{font-size:.86rem;color:var(--ink-2)}
+/* temario: una ficha por tema */
+.tm-acc{align-items:center}
+.tm-grupo{font:600 .8rem var(--f-ui);color:var(--ink-2);margin:22px 0 6px;padding-bottom:6px;border-bottom:1.5px solid var(--red-2)}
+.tm-grupo:first-child{margin-top:8px}
+details.ficha{border-bottom:1px solid var(--rule)}
+details.ficha > summary{cursor:pointer;list-style:none;display:grid;grid-template-columns:3.2rem 1fr auto 1rem;gap:12px;align-items:center;padding:12px 0}
+details.ficha > summary::-webkit-details-marker{display:none}
+details.ficha > summary::after{content:"+";font:600 1.1rem/1 var(--f-ui);color:var(--red)}
+details.ficha[open] > summary::after{content:"−"}
+.ficha .cod{font:600 .8rem var(--f-ui);color:var(--red);background:var(--red-tint);border-radius:6px;padding:4px 0;text-align:center}
+.ficha .tit{font-weight:600;line-height:1.35}
+.ficha .peso{display:grid;grid-template-columns:70px auto;gap:8px;align-items:center;font-size:.84rem;color:var(--ink-2);white-space:nowrap}
+.ficha .peso .minibar{margin:0}
+.ficha-cuerpo{display:grid;gap:16px;padding:4px 0 20px 4.0rem;max-width:860px}
+.ficha-cuerpo h4{font:600 .82rem var(--f-ui);color:var(--ink-2);margin-bottom:6px}
+.ficha-cuerpo .oficial{font-family:var(--f-text);line-height:1.6;max-width:75ch}
+.ficha-cuerpo ul.prog{margin:0;padding:0;list-style:none;font-family:var(--f-text);line-height:1.5;display:grid;gap:3px}
+.ficha-cuerpo ul.prog li[data-n="0"]{font-weight:600;margin-top:6px}
+.ficha-cuerpo ul.prog li[data-n="2"]{padding-left:18px}.ficha-cuerpo ul.prog li[data-n="3"]{padding-left:36px;font-size:.95em;color:var(--ink-2)}
+.ficha-cifras{display:flex;flex-wrap:wrap;gap:8px 28px;font-size:.9rem}
+.ficha-cifras b{font-size:1.15rem;display:block}
+.leyes{display:grid;gap:10px;margin:0;padding:0;list-style:none}
+.leyes li{display:grid;gap:4px;padding:10px 12px;border:1px solid var(--rule);border-radius:10px;background:var(--paper)}
+.leyes .ln{font-weight:600}.leyes .lk{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.86rem}
+.leyes .arts{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+.leyes .arts a{font-size:.8rem;text-decoration:none;padding:3px 8px;border-radius:999px;background:var(--pen-tint);color:var(--pen)}
+.ficha-acc{display:flex;flex-wrap:wrap;gap:8px}
+@media (max-width:600px){details.ficha > summary{grid-template-columns:2.8rem 1fr 1rem}.ficha .peso{grid-column:2;grid-row:2}.ficha-cuerpo{padding-left:0}}
+@media print{
+  body.imprimiendo{background:#fff}
+  body.imprimiendo > :not(#main),body.imprimiendo #main > :not(#temario),body.imprimiendo #temario > :not(.tm-panel),
+  body.imprimiendo .tm-panel > :not(#tm-lista),body.imprimiendo .ficha:not(.imprimir),body.imprimiendo .tm-grupo:not(.imprimir),
+  body.imprimiendo .ficha-acc,body.imprimiendo .an-tabs{display:none!important}
+  body.imprimiendo #main > #temario{display:block!important;padding:0}
+  body.imprimiendo .tm-panel{border:0;box-shadow:none;padding:0}
+  body.imprimiendo .ficha{break-inside:avoid-page;border-bottom:1px solid #999}
+  body.imprimiendo .ficha > summary::after{content:none}
+  body.imprimiendo .leyes li{break-inside:avoid}
+  body.imprimiendo a{color:#1c2541}
+  body.imprimiendo .tm-cab{display:block!important;margin-bottom:12px}
+}
+.tm-cab{display:none}
 .panel{background:var(--sheet);border:1px solid var(--rule);border-radius:var(--radio);padding:22px;min-width:0;box-shadow:var(--sombra)}
 .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,430px),1fr));gap:20px}
 .takeaways{display:grid;gap:14px;counter-reset:t;padding:0;margin:0;list-style:none}
@@ -355,6 +397,7 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
         <a href="#metodo" data-sec="metodo" data-grupo="analisis"><b>Método y fuentes</b><small>Cómo se ha hecho este análisis</small></a>
       </div>
     </div>
+    <a href="#temario" data-sec="temario">Temario</a>
     <a href="#banco" data-sec="banco">Banco de preguntas</a>
     <span class="nav-roles" id="nav-roles"></span>
   </div>
@@ -377,6 +420,7 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
   <nav class="seguir" aria-label="Por dónde seguir">
     <a href="#examenes"><b>Haz un examen</b><span>Simulacros y tests cortos corregidos con la plantilla oficial</span></a>
     <a href="#temas"><b>Mira qué temas caen</b><span>El peso de cada tema y cada ley en los exámenes</span></a>
+    <a href="#temario"><b>Descarga el temario</b><span>El programa oficial con las leyes de cada tema, en PDF</span></a>
     <a href="#banco"><b>Busca preguntas</b><span>Todas las preguntas por tema y convocatoria</span></a>
   </nav>
 </header>
@@ -509,6 +553,24 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
   </div>
   <details class="panel plegable" id="panel-conv"><summary><h3>Ficha de cada convocatoria</h3><span class="note">Plazas, formato, presentados y cortes, año a año</span></summary>
     <div class="scroll" style="margin-top:10px"><table id="tb-conv"></table></div></details>
+</section>
+
+<section id="temario">
+  <header><h2>Temario oficial</h2>
+  <p class="ink2" id="tm-intro"></p>
+  <details class="como"><summary>De dónde sale cada dato</summary><p>El texto de cada tema es el del programa oficial (<a id="tm-fuente" target="_blank" rel="noopener"></a>). Las leyes salen del propio programa y, cuando hay datos, de los artículos que citan las preguntas de ese tema. Los enlaces llevan al texto consolidado del BOE, gratuito y siempre al día.</p></details>
+  <div class="controls tm-acc">
+    <button class="primary" id="tm-pdf">Descargar el temario en PDF</button>
+    <span class="note">Se abre la ventana de imprimir: elige «Guardar como PDF».</span>
+  </div></header>
+  <div class="panel tm-panel">
+    <div class="controls">
+      <label for="tm-q">Buscar<input type="search" id="tm-q" placeholder="Un tema, una ley o una palabra"></label>
+      <label for="tm-orden">Ordenar<select id="tm-orden"><option value="prog">Por orden del programa</option><option value="peso">Por lo que pesan en el examen</option></select></label>
+    </div>
+    <p class="note" id="tm-count" style="margin-top:10px"></p>
+    <div id="tm-lista"></div>
+  </div>
 </section>
 
 <section id="banco">

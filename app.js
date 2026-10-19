@@ -54,6 +54,7 @@ $("#pt-que").innerHTML = [
   ["Simulacros corregidos", "Exámenes reales con la plantilla oficial del tribunal: tu nota, lo que fallas y la respuesta correcta de cada pregunta."],
   ["Lo que más cae", "Cada pregunta clasificada por tema y por ley, para saber dónde se concentra el examen y qué se repite."],
   ["Qué repasar primero", "Tu acierto por tema cruzado con lo que pesa cada tema en el examen real."],
+  ["El temario oficial", "Cada tema del programa con las leyes que entran, enlazadas al BOE, y descargable en PDF."],
   ...(window.CONFIG?.supabaseUrl ? [["Con tu preparador", "Con una cuenta gratuita tu progreso va contigo a cualquier dispositivo y tu preparador puede seguirlo y ponerte tareas."]] : [])
 ].map(([t, x]) => `<li><b>${t}</b><span>${x}</span></li>`).join("");
 $("#nav-cambiar").onclick = e => { e.preventDefault(); location.hash = "inicio"; location.reload(); };
@@ -91,6 +92,7 @@ function mostrarVista(h, subir = true) {
   if (act) pest.scrollLeft = act.offsetLeft - pest.offsetLeft - 20;   // en el móvil la fila se desliza: que se vea la pestaña actual
   if (!subir) return;
   const el = h && document.getElementById(h);
+  if (el?.matches("details")) el.open = true;   // #ficha-D12 abre la ficha de ese tema
   if (el && el.id !== id) el.scrollIntoView({block: "start"}); else if (cambia) scrollTo(0, 0); }
 // si las entradas no caben junto a la cuenta, el menú pasa a compacto (botón «Menú»)
 function ajustarNav() {
@@ -328,6 +330,58 @@ function drawBanco() { const per = 10, pages = Math.max(1, Math.ceil(filtered.le
 $("#pg-prev").addEventListener("click", () => { page--; drawBanco(); }); $("#pg-next").addEventListener("click", () => { page++; drawBanco(); });
 filterBanco();
 
+/* ---------- temario: el programa oficial, tema a tema ---------- */
+const PROG = D.programa || [];
+const boeUrl = (id, ancla) => `https://www.boe.es/buscar/act.php?id=${id}${ancla ? "#" + ancla : ""}`;
+const boePdf = id => `https://www.boe.es/buscar/pdf/${id.split("-")[2]}/${id}-consolidado.pdf`;
+const pregTema = {}; D.banco.forEach(b => pregTema[b[3]] = (pregTema[b[3]] || 0) + 1);
+const tituloTema = f => TEMAS[f.k] || f.o || "";
+$("#tm-intro").textContent = `Los ${PROG.length} temas del programa, con las leyes que entran y lo que más se pregunta de cada uno.`;
+if (C.programaFuente) { $("#tm-fuente").textContent = C.programaFuente[0]; $("#tm-fuente").href = C.programaFuente[1]; }
+function fichaHTML(f) { const t = tm[f.k], pct = t ? t.pct_ultimos : null, n = pregTema[f.k] || 0;
+  const aprox = pct ? Math.round(pct * C.simN / 100) : 0, maxPct = Math.max(...temasR.map(x => x.pct_ultimos)) || 1;
+  const prog = f.t ? `<p class="oficial">${esc(f.t)}</p>` : `<ul class="prog">${f.l.map(([nv, x]) => `<li data-n="${nv}">${esc(x)}</li>`).join("")}</ul>`;
+  const leyes = f.leyes.map(l => `<li><span class="ln">${esc(l.n)}</span>
+      <span class="lk"><a href="${boeUrl(l.id)}" target="_blank" rel="noopener">Leer en el BOE</a><a href="${boePdf(l.id)}" target="_blank" rel="noopener">PDF oficial</a>${l.q ? `<span class="note">Citada en ${l.q} pregunta${l.q === 1 ? "" : "s"} de este tema</span>` : ""}</span>
+      ${l.a && l.a.length ? `<span class="arts">${l.a.map(([num, an, tit, v]) => `<a href="${boeUrl(l.id, an)}" target="_blank" rel="noopener" title="${v} preguntas">art. ${esc(num)}${tit ? ": " + esc(tit) : ""} (${v})</a>`).join("")}</span>` : ""}</li>`).join("");
+  return `<details class="ficha" id="ficha-${f.k}" data-k="${f.k}"><summary><span class="cod">${esc(f.k)}</span><span class="tit">Tema ${f.n}. ${esc(tituloTema(f))}</span>
+    <span class="peso">${pct != null ? `<span class="minibar"><i style="width:${(100 * pct / maxPct).toFixed(0)}%"></i></span>${fmt(pct, 1)} %` : ""}</span></summary>
+    <div class="ficha-cuerpo">
+      <div><h4>Programa oficial</h4>${prog}</div>
+      ${t ? `<div class="ficha-cifras"><span><b>${fmt(pct, 1)} %</b>del examen (${C.recienteLabel})${aprox ? `, unas ${aprox} pregunta${aprox === 1 ? "" : "s"} de ${C.simN}` : ""}</span>
+        <span><b>${t.anos_presente ?? Object.values(t.por_ano).filter(Boolean).length} de ${ANOS.length}</b>exámenes en los que ha salido</span><span><b>${fmt(n)}</b>preguntas en el banco</span></div>` : ""}
+      ${f.leyes.length ? `<div><h4>Leyes que entran</h4><ul class="leyes">${leyes}</ul></div>` : ""}
+      <div class="ficha-acc">${poolTemaN(f.k) ? `<button class="primary" data-practicar="${f.k}">Practicar este tema</button>` : ""}${n ? `<button data-banco-tema="${f.k}">Ver sus preguntas</button>` : ""}<button data-pdf-tema="${f.k}">Descargar en PDF</button></div>
+    </div></details>`; }
+const poolTemaN = k => D.examen.filter(q => q.tema === k).length;
+const bloqueFicha = f => C.temaBloque[f.k] || "Otras pruebas", ORDEN_BLOQUE = [...new Set(PROG.map(bloqueFicha))];
+function drawTemario() { const q = normTxt($("#tm-q").value.trim()), orden = $("#tm-orden").value, words = q.split(/\s+/).filter(Boolean);
+  let fs = PROG.filter(f => words.every(w => normTxt(`${f.k} ${tituloTema(f)} ${f.t || ""} ${(f.l || []).map(x => x[1]).join(" ")} ${f.leyes.map(l => l.n).join(" ")}`).includes(w)));
+  if (orden === "peso") fs = [...fs].sort((a, b) => (tm[b.k]?.pct_ultimos ?? -1) - (tm[a.k]?.pct_ultimos ?? -1));
+  else fs = [...fs].sort((a, b) => ORDEN_BLOQUE.indexOf(bloqueFicha(a)) - ORDEN_BLOQUE.indexOf(bloqueFicha(b)));   // cada bloque junto
+  $("#tm-count").textContent = fs.length === PROG.length ? "" : `${fs.length} de ${PROG.length} temas`;
+  let html = `<div class="tm-cab"><h2>Temario de ${esc(C.nombreCorto)}</h2><p class="note">${esc(C.programaFuente?.[0] || "")}. Radiografía de Oposiciones.</p></div>`, grupo = null;
+  fs.forEach(f => { const g = orden === "prog" ? bloqueFicha(f) : null;
+    if (g && g !== grupo) { html += `<h3 class="tm-grupo">${esc(g)}</h3>`; grupo = g; }
+    html += fichaHTML(f); });
+  $("#tm-lista").innerHTML = html + (fs.length ? "" : `<p class="note" style="margin-top:10px">Ningún tema coincide. Prueba con otra palabra.</p>`); }
+$("#tm-q").addEventListener("input", drawTemario); $("#tm-orden").addEventListener("change", drawTemario);
+if (PROG.length) drawTemario(); else { $("#temario").remove(); document.querySelector('nav.toc [data-sec="temario"]')?.remove(); }
+if (/^ficha-/.test(location.hash.slice(1))) mostrarVista(location.hash.slice(1));   // enlace directo a un tema: las fichas no existían al arrancar
+// «Descargar en PDF»: se imprime solo lo elegido (una ficha o todas, abiertas) y el navegador lo guarda como PDF
+function imprimirFichas(ks) { const fichas = [...document.querySelectorAll("#tm-lista .ficha")].filter(d => !ks || ks.includes(d.dataset.k));
+  const abiertas = fichas.map(d => d.open); fichas.forEach(d => { d.open = true; d.classList.add("imprimir"); });
+  document.querySelectorAll("#tm-lista .tm-grupo").forEach(h => { let e = h.nextElementSibling;
+    while (e && !e.matches(".tm-grupo")) { if (e.classList.contains("imprimir")) { h.classList.add("imprimir"); break; } e = e.nextElementSibling; } });
+  document.body.classList.add("imprimiendo");
+  const fin = () => { document.body.classList.remove("imprimiendo"); document.querySelectorAll("#tm-lista .imprimir").forEach(e => e.classList.remove("imprimir"));
+    fichas.forEach((d, i) => d.open = abiertas[i]); removeEventListener("afterprint", fin); };
+  addEventListener("afterprint", fin); print(); }
+$("#tm-pdf").addEventListener("click", () => { if ($("#tm-q").value) { $("#tm-q").value = ""; drawTemario(); } imprimirFichas(null); });
+document.addEventListener("click", e => { const b = e.target.closest("[data-pdf-tema], [data-banco-tema]"); if (!b) return;
+  if (b.dataset.pdfTema) return imprimirFichas([b.dataset.pdfTema]);
+  $("#f-tema").value = b.dataset.bancoTema; ["#f-q", "#f-ano"].forEach(s => $(s).value = ""); filterBanco(); location.hash = "banco"; });
+
 /* ================= EXÁMENES ================= */
 const EX = D.examen.map((q, i) => ({...q, id: q.oep + "-" + (q.ej || "") + "-" + q.n, i}));
 const EXI = Object.fromEntries(EX.map(q => [q.id, q]));
@@ -378,6 +432,7 @@ function prioridades() { const pt = porTema();
     .sort((a, b) => b.prio - a.prio); }
 function practicar(t) { document.querySelector('input[name="modo"][value="tema"]').checked = true; selTema.value = "T:" + t;
   if (selTema.value !== "T:" + t) return; $("#ex-n").value = "20"; syncConfig();
+  if (VISTA !== "examenes") { history.pushState(null, "", "#examenes"); mostrarVista("examenes"); }   // desde el temario
   $("#ex-config").scrollIntoView({behavior: "smooth", block: "start"}); $("#ex-start").focus({preventScroll: true}); }
 document.addEventListener("click", e => { const b = e.target.closest("[data-practicar]"); if (b) practicar(b.dataset.practicar); });
 let progTodos = false;
