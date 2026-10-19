@@ -5,7 +5,8 @@ const HASH = location.hash.replace("#", "");
 // al pasar a otra sección el enlace pasa a ser #temas: hay que recordar la oposición para cuando se recargue
 if (OPS[HASH]) { OPK = HASH; try { localStorage.setItem("opos-sel", OPK); } catch (e) { /* sin almacenamiento */ } }
 const PORTAL = HASH === "inicio" || !OPS[OPK]?.r;
-const D = OPS[OPK] || Object.values(OPS).find(o => o.r);   // en la web propia solo viene cargada una oposición
+// en la web propia solo viene entera una oposición: en la portada, la más ligera, aunque la última elegida sea otra
+const D = OPS[OPK]?.r ? OPS[OPK] : Object.values(OPS).find(o => o.r);
 const C = D.cfg;
 // la versión con cuentas (cuenta.js) rellena estos ganchos; en la de Claude no hay ninguno
 const GANCHOS = window.GANCHOS || {};
