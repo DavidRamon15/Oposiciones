@@ -32,6 +32,43 @@ $("#op-cards").innerHTML = Object.entries(OPS).map(([k, o]) => { const d = diasH
   <span class="meta">${o.cfg.chips.map(c => `<span class="chip">${esc(c)}</span>`).join("")}</span><span class="go">Entrar →</span></button>`; }).join("");
 $("#op-cards").querySelectorAll(".opcard").forEach(b => b.onclick = () => elegirOp(b.dataset.k));
 $("#nav-cambiar").onclick = e => { e.preventDefault(); location.hash = "inicio"; location.reload(); };
+
+/* ---------- menú superior ---------- */
+$("#nav-op").textContent = C.nombreCorto;
+const NAV = $("nav.toc"), bAn = $("#nav-analisis-b"), mAn = $("#nav-analisis"), bMov = $("#nav-movil");
+function grupoNav(abrir) { mAn.hidden = !abrir; bAn.setAttribute("aria-expanded", String(abrir)); }
+function hojaNav(abrir) { NAV.classList.toggle("abierto", abrir); bMov.setAttribute("aria-expanded", String(abrir)); }
+const cerrarNav = () => { grupoNav(false); hojaNav(false); };
+bAn.onclick = () => { grupoNav(mAn.hidden); if (!mAn.hidden) mAn.querySelector("a").focus(); };
+bMov.onclick = () => hojaNav(!NAV.classList.contains("abierto"));
+document.addEventListener("click", e => { if (!e.target.closest("nav.toc") || e.target.closest("nav.toc a")) cerrarNav(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && (!mAn.hidden || NAV.classList.contains("abierto"))) { const vuelve = !mAn.hidden ? bAn : bMov; cerrarNav(); vuelve.focus(); } });
+mAn.addEventListener("keydown", e => {   // flechas dentro del desplegable
+  if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return; e.preventDefault();
+  const l = [...mAn.querySelectorAll("a")], i = l.indexOf(document.activeElement);
+  l[(i + (e.key === "ArrowDown" ? 1 : l.length - 1)) % l.length].focus(); });
+// la sección en la que estás (también las que añade la versión con cuentas)
+let navRaf = 0;
+function seccionActual() { navRaf = 0;
+  const lim = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--nav-h")) + 90;
+  let act = null; document.querySelectorAll("#main > header.hero, #main > section").forEach(s => { if (!s.hidden && s.getBoundingClientRect().top <= lim) act = s.id; });
+  document.querySelectorAll("nav.toc [data-sec]").forEach(a => a.dataset.sec === act ? a.setAttribute("aria-current", "location") : a.removeAttribute("aria-current"));
+  bAn.classList.toggle("actual", !!mAn.querySelector(`[data-sec="${act}"]`)); }
+addEventListener("scroll", () => { if (!navRaf) navRaf = requestAnimationFrame(seccionActual); }, {passive: true});
+seccionActual();
+// si las entradas no caben junto a la cuenta, el menú pasa a compacto (botón «Menú»)
+function ajustarNav() {
+  if (NAV.hidden) return;
+  NAV.classList.remove("compacto");
+  const items = $("#nav-items"), cuenta = $("#nav-cuenta"), ultimo = items.lastElementChild.lastElementChild || items.lastElementChild;
+  const fin = Math.max(...[...items.children].map(e => e.getBoundingClientRect().right), ultimo.getBoundingClientRect().right);
+  const cabe = innerWidth > 760 && fin + 16 <= cuenta.getBoundingClientRect().left && items.scrollWidth <= items.clientWidth + 1;
+  NAV.classList.toggle("compacto", !cabe);
+  if (cabe) hojaNav(false);
+}
+new ResizeObserver(ajustarNav).observe($("nav.toc .in"));
+new MutationObserver(ajustarNav).observe(NAV, {childList: true, subtree: true, characterData: true});
+ajustarNav();
 $("#portal").hidden = !PORTAL; $("#main").hidden = PORTAL; document.querySelector("nav.toc").hidden = PORTAL;
 document.title = PORTAL ? "Radiografía de Oposiciones" : "Radiografía " + C.nombreCorto;
 [["#h-eyebrow", C.cuerpo], ["#h-title", C.titulo]].forEach(([s, v]) => $(s).textContent = v);

@@ -101,7 +101,7 @@
   function montarBase() {
     // botón de cuenta: en la barra de secciones y en la portada
     // fuera del carril desplazable de secciones, para que siempre se vea
-    q("nav.toc")?.insertAdjacentHTML("beforeend", `<span class="cu-sitio" id="cu-nav"></span>`);
+    (q("#nav-cuenta") || q("nav.toc"))?.insertAdjacentHTML("beforeend", `<span class="cu-sitio" id="cu-nav"></span>`);
     q("#portal .wrap")?.insertAdjacentHTML("afterbegin", `<div class="cu-portal" id="cu-portal"></div>`);
     document.body.insertAdjacentHTML("beforeend", `
       <div class="cu-aviso" id="cu-aviso" role="status" aria-live="polite" hidden></div>
@@ -388,12 +388,12 @@
     if (!PERFIL || PERFIL.rol === "opositor") return;
     const ancla = q("#examenes");
     if (!ancla) return;   // en la portada no hay paneles
-    const nav = q('nav.toc a[href="#examenes"]');
+    const roles = q("#nav-roles");
     ancla.insertAdjacentHTML("afterend", `<section id="alumnos" class="cu-sec"><header><h2>Mis alumnos</h2><p class="ink2">Los opositores que se han unido con tu código. Ves su progreso en cualquier oposición y puedes ponerles tareas y dejarles notas.</p></header><div id="al-cuerpo"><p class="note">Cargando…</p></div></section>`);
-    nav?.insertAdjacentHTML("afterend", `<a href="#alumnos" class="cu-navrol">Mis alumnos</a>`);
+    roles?.insertAdjacentHTML("beforeend", `<a href="#alumnos" class="cu-navrol" data-sec="alumnos">Mis alumnos</a>`);
     if (PERFIL.rol === "admin") {
       q("#alumnos").insertAdjacentHTML("afterend", `<section id="administracion" class="cu-sec"><header><h2>Administración</h2><p class="ink2">Todas las cuentas de la web. Los cambios se guardan al momento.</p></header><div id="ad-cuerpo"><p class="note">Cargando…</p></div></section>`);
-      q('nav.toc a[href="#alumnos"]')?.insertAdjacentHTML("afterend", `<a href="#administracion" class="cu-navrol">Administración</a>`);
+      roles?.insertAdjacentHTML("beforeend", `<a href="#administracion" class="cu-navrol" data-sec="administracion">Administración</a>`);
       pintarAdmin();
     }
     pintarAlumnos();
