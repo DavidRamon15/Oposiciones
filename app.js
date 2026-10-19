@@ -2,7 +2,8 @@
 const OPS = window.OPS;
 let OPK = null; try { OPK = localStorage.getItem("opos-sel"); } catch (e) { /* sin almacenamiento */ }
 const HASH = location.hash.replace("#", "");
-if (OPS[HASH]) OPK = HASH;
+// al pasar a otra sección el enlace pasa a ser #temas: hay que recordar la oposición para cuando se recargue
+if (OPS[HASH]) { OPK = HASH; try { localStorage.setItem("opos-sel", OPK); } catch (e) { /* sin almacenamiento */ } }
 const PORTAL = HASH === "inicio" || !OPS[OPK]?.r;
 const D = OPS[OPK] || Object.values(OPS).find(o => o.r);   // en la web propia solo viene cargada una oposición
 const C = D.cfg;
@@ -71,15 +72,26 @@ mAn.addEventListener("keydown", e => {   // flechas dentro del desplegable
   if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return; e.preventDefault();
   const l = [...mAn.querySelectorAll("a")], i = l.indexOf(document.activeElement);
   l[(i + (e.key === "ArrowDown" ? 1 : l.length - 1)) % l.length].focus(); });
-// la sección en la que estás (también las que añade la versión con cuentas)
-let navRaf = 0;
-function seccionActual() { navRaf = 0;
-  const lim = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--nav-h")) + 90;
-  let act = null; document.querySelectorAll("#main > header.hero, #main > section").forEach(s => { if (!s.hidden && s.getBoundingClientRect().top <= lim) act = s.id; });
-  document.querySelectorAll("nav.toc [data-sec]").forEach(a => a.dataset.sec === act ? a.setAttribute("aria-current", "location") : a.removeAttribute("aria-current"));
-  bAn.classList.toggle("actual", !!mAn.querySelector(`[data-sec="${act}"]`)); }
-addEventListener("scroll", () => { if (!navRaf) navRaf = requestAnimationFrame(seccionActual); }, {passive: true});
-seccionActual();
+// una sección a la vista: la del enlace (#temas) o, si el enlace apunta a algo de dentro, la que lo contiene
+// (también las que añade la versión con cuentas al iniciar sesión)
+const VISTAS = () => [...document.querySelectorAll("#main > header.hero, #main > section")];
+const ANALISIS = [...mAn.querySelectorAll("[data-sec]")].map(a => a.dataset.sec);
+let VISTA = null;
+function vistaDe(h) {
+  if (!h || OPS[h]) return "resumen";
+  const el = document.getElementById(h), v = el?.closest("#main > header.hero, #main > section");
+  return v ? v.id : null; }
+function mostrarVista(h, subir = true) {
+  const id = vistaDe(h) || (VISTAS().some(v => v.id === VISTA) ? VISTA : "resumen");
+  const cambia = id !== VISTA; VISTA = id;
+  VISTAS().forEach(v => v.classList.toggle("actual", v.id === id));
+  document.querySelectorAll("nav.toc [data-sec], .an-tabs a").forEach(a => a.dataset.sec === id ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current"));
+  bAn.classList.toggle("actual", ANALISIS.includes(id));
+  const pest = document.querySelector(`#${id} > .an-tabs`), act = pest?.querySelector("[aria-current]");
+  if (act) pest.scrollLeft = act.offsetLeft - pest.offsetLeft - 20;   // en el móvil la fila se desliza: que se vea la pestaña actual
+  if (!subir) return;
+  const el = h && document.getElementById(h);
+  if (el && el.id !== id) el.scrollIntoView({block: "start"}); else if (cambia) scrollTo(0, 0); }
 // si las entradas no caben junto a la cuenta, el menú pasa a compacto (botón «Menú»)
 function ajustarNav() {
   if (NAV.hidden) return;
@@ -103,6 +115,12 @@ if (C.imagen) { $("#h-img").src = C.imagen; $("#h-img").alt = C.imagenAlt || "";
   .forEach(([s, v]) => { if (v != null) $(s).innerHTML = v; });
 $("#opt-rec").textContent = `Más preguntados (${C.recienteLabel})`;
 if (C.sinSupuestos) { $("#lb-parte").hidden = true; }
+// en cada sección de análisis, las demás a un clic
+ANALISIS.forEach(id => document.getElementById(id)?.insertAdjacentHTML("afterbegin", `<nav class="an-tabs" aria-label="Análisis">${
+  [...mAn.querySelectorAll("[data-sec]")].map(a => `<a href="#${a.dataset.sec}" data-sec="${a.dataset.sec}">${a.querySelector("b").textContent}</a>`).join("")}</nav>`));
+addEventListener("hashchange", () => { const h = location.hash.slice(1); if (h === "inicio") return location.reload(); if (vistaDe(h)) mostrarVista(h); });
+new MutationObserver(() => mostrarVista(location.hash.slice(1), false)).observe($("#main"), {childList: true});
+mostrarVista(location.hash.slice(1));
 
 /* ---------- tooltip ---------- */
 const tip = $("#tip");
@@ -126,7 +144,11 @@ const tm = Object.fromEntries(R.temas.map(t => [t.tema, t]));
 
 /* ---------- KPIs + conclusiones ---------- */
 $("#kpis").innerHTML = C.kpis.map(([b, s]) => `<div class="kpi"><b>${b}</b><span>${s}</span></div>`).join("");
-$("#takeaways").innerHTML = C.takeaways.map(s => `<li><p>${s}</p></li>`).join("");
+// a la vista solo el titular de cada conclusión; los datos, al pulsarlo
+$("#takeaways").innerHTML = C.takeaways.map(s => { const m = s.match(/^<b>(.*?)<\/b>\s*(.*)$/s);
+  if (!m) return `<li><p>${s}</p></li>`;
+  const frase = /\.$/.test(m[1]);   // «<b>Los temas que más preguntas dan</b> en los…» no es una frase entera: el detalle la repite
+  return `<li><details><summary>${m[1].replace(/[.:]$/, "")}</summary><p>${frase ? m[2] : s}</p></details></li>`; }).join("");
 const artAll = R.articulos || [];
 
 /* ---------- 1a: bloques apilados ---------- */
@@ -158,6 +180,10 @@ function drawHeat() {
   if (orden === "rec") rows.sort((a, b) => b.pct_ultimos - a.pct_ultimos); else if (orden === "tot") rows.sort((a, b) => b.total - a.total);
   let html = `<thead><tr><th>Tema</th>${ANOS.map(a => `<th class="y">${lblAno(a)}</th>`).join("")}<th class="num">Total</th><th class="num">Media ${C.recienteCorto}</th></tr></thead><tbody>`;
   let last = "";
+  // ordenados por lo que más cae basta con los primeros; en el orden del programa se ven todos
+  const corto = orden !== "prog" && !heatTodos && rows.length > HEAT_N; if (corto) rows = rows.slice(0, HEAT_N);
+  $("#btn-heat").hidden = orden === "prog" || temasR.length <= HEAT_N;
+  $("#btn-heat").textContent = corto ? `Ver los ${temasR.length} temas` : `Ver solo los ${HEAT_N} primeros`;
   rows.forEach(t => {
     if (orden === "prog" && t.bloque !== last) { html += `<tr class="blk"><td colspan="${ANOS.length + 3}">${esc(t.bloque)}</td></tr>`; last = t.bloque; }
     html += `<tr><td class="t"><span class="mono muted">${t.tema}</span> ${esc(t.titulo)}</td>` + ANOS.map(a => { const n = t.por_ano[a] || 0, p = 100 * n / totalAno[a], s = stepOf(p);
@@ -168,7 +194,8 @@ function drawHeat() {
   $("#tb-heat").querySelectorAll("td.c").forEach(td => { const t = tm[td.dataset.t], a = td.dataset.a, n = t.por_ano[a] || 0;
     bindTip(td, `<b>${esc(t.titulo)}</b><br>${NOMBRE_OEP(a)}: ${n} pregunta${n === 1 ? "" : "s"} (${fmt(100 * n / totalAno[a], 1)} % del test)`); td.removeAttribute("tabindex"); });
 }
-$("#sel-orden").addEventListener("change", drawHeat); drawHeat();
+let heatTodos = false; const HEAT_N = 12;
+$("#sel-orden").addEventListener("change", drawHeat); $("#btn-heat").addEventListener("click", () => { heatTodos = !heatTodos; drawHeat(); }); drawHeat();
 
 /* ---------- barras horizontales genéricas ---------- */
 function hbars(el, rows, unit = "") { const max = Math.max(...rows.map(r => r.v));
@@ -176,8 +203,8 @@ function hbars(el, rows, unit = "") { const max = Math.max(...rows.map(r => r.v)
   [...el.querySelectorAll(".hbar")].forEach((d, i) => bindTip(d, `<b>${esc(rows[i].full || rows[i].l)}</b><br>${esc(rows[i].tip)}`)); }
 const pracRows = Object.entries(R.temas_practico || {}).filter(([t]) => t !== "??").slice(0, 12);
 if (pracRows.length) hbars($("#ch-prac"), pracRows.map(([t, v]) => ({l: TEMAS[t], full: TEMAS[t], v, tip: `${v} preguntas de supuestos`}))); else $("#panel-prac").hidden = true;
-if (R.normas) hbars($("#ch-normas"), R.normas.slice(0, 18).map(n => ({l: n.nombre, v: n.total, tip: `${n.total} preguntas · ${Object.keys(n.por_ano).length} convocatorias`})));
-else hbars($("#ch-normas"), R.materias.slice(0, 18).map(n => ({l: n.materia, v: n.veces, tip: `${n.veces} preguntas · ${n.anos.length} convocatorias`})));
+if (R.normas) hbars($("#ch-normas"), R.normas.slice(0, 12).map(n => ({l: n.nombre, v: n.total, tip: `${n.total} preguntas · ${Object.keys(n.por_ano).length} convocatorias`})));
+else hbars($("#ch-normas"), R.materias.slice(0, 12).map(n => ({l: n.materia, v: n.veces, tip: `${n.veces} preguntas · ${n.anos.length} convocatorias`})));
 if (C.sinLiteral) $("#panel-literal").hidden = true;
 
 /* ---------- 2b: literalidad ---------- */
@@ -199,14 +226,17 @@ if (!C.sinLiteral) (function () {
 const NN = Object.fromEntries((R.normas || []).map(n => [n.norma, n.nombre]));
 const normasArt = [...new Set(artAll.map(a => a.norma))];
 $("#sel-norma").innerHTML = `<option value="">Todas</option>` + normasArt.map(n => `<option value="${n}">${esc(NN[n] || n)}</option>`).join("");
-function drawArts() { const f = $("#sel-norma").value; const rows = artAll.filter(a => !f || a.norma === f).slice(0, 40);
+let artsN = 12; const ARTS_MAX = 40;
+function botonArts(total, que) { const b = $("#btn-arts"), n = Math.min(total, ARTS_MAX); b.hidden = total <= 12; const f = que === "materias"; b.textContent = artsN < n ? `Ver ${f ? "las" : "los"} ${n} ${que} que más caen` : `Ver solo ${f ? "las 12 primeras" : "los 12 primeros"}`; }
+$("#btn-arts").addEventListener("click", () => { artsN = artsN === 12 ? ARTS_MAX : 12; R.articulos ? drawArts() : drawMaterias(); });
+function drawArts() { const f = $("#sel-norma").value, todas = artAll.filter(a => !f || a.norma === f), rows = todas.slice(0, artsN); botonArts(todas.length, "artículos");
   $("#tb-arts").innerHTML = `<thead><tr><th>Artículo</th><th>Norma</th><th class="num">Preguntas</th><th>Convocatorias en que aparece</th><th>Tema</th></tr></thead><tbody>` +
     rows.map(a => { const q = D.banco.find(b => b[6].split(",").includes(a.articulo)); const t = q ? q[3] : "";
       return `<tr><td class="mono"><b>art. ${a.num}</b></td><td>${esc(NN[a.norma] || a.norma)}</td><td class="num">${a.veces}</td><td>${ANOS.map(y => `<span class="chip${a.anos.includes(+y) || a.anos.includes(y) ? " on" : ""}">${lblAno(y)}</span>`).join("")}</td><td>${t && TEMAS[t] ? `<span class="mono muted">${t}</span> ${esc(TEMAS[t])}` : ""}</td></tr>`; }).join("") + "</tbody>"; }
-function drawMaterias() { $("#arts-h3").textContent = "Las materias que más caen"; $("#lb-norma").hidden = true;
+function drawMaterias() { $("#arts-h3").textContent = "Las materias que más caen"; $("#lb-norma").hidden = true; botonArts(R.materias.length, "materias");
   $("#tb-arts").innerHTML = `<thead><tr><th>Materia (etiqueta del tribunal)</th><th class="num">Preguntas</th><th>Convocatorias en que aparece</th></tr></thead><tbody>` +
-    R.materias.slice(0, 40).map(m => `<tr><td>${esc(m.materia)}</td><td class="num">${m.veces}</td><td>${ANOS.map(y => `<span class="chip${m.anos.includes(+y) ? " on" : ""}">${lblAno(y)}</span>`).join("")}</td></tr>`).join("") + "</tbody>"; }
-if (R.articulos) { $("#sel-norma").addEventListener("change", drawArts); drawArts(); } else drawMaterias();
+    R.materias.slice(0, artsN).map(m => `<tr><td>${esc(m.materia)}</td><td class="num">${m.veces}</td><td>${ANOS.map(y => `<span class="chip${m.anos.includes(+y) ? " on" : ""}">${lblAno(y)}</span>`).join("")}</td></tr>`).join("") + "</tbody>"; }
+if (R.articulos) { $("#sel-norma").addEventListener("change", () => { artsN = 12; drawArts(); }); drawArts(); } else drawMaterias();
 
 /* ---------- 3: repetidas ---------- */
 const RP = R.repetidas;
@@ -215,7 +245,7 @@ $("#kpi-rep").innerHTML = [[fmt(RP.preguntas), "preguntas con una pareja en otra
   .map(([b, s]) => `<div class="kpi"><b>${b}</b><span>${s}</span></div>`).join("");
 const blqs = C.bloques.map(b => b[0]);
 $("#sel-rep").innerHTML += blqs.map(b => `<option>${b}</option>`).join("");
-let repN = 25;
+let repN = 10;
 function qcard(q) { const ops = Object.values(q.opciones || {}).filter(Boolean);
   return `<div class="qcard"><span class="tag">${NOMBRE_OEP(String(q.oep))}${q.ej ? ", modelo " + q.ej : ""}, ${q.parte === "teorico" ? "test" : "supuesto práctico"}, pregunta ${q.n}</span><p style="margin-top:6px">${esc(q.enunciado)}</p>${ops.length ? `<ol>${ops.map((o, i) => `<li data-i="${i}">${esc(o)}</li>`).join("")}</ol>` : ""}` +
     `${q.resp != null && ops.length ? `<button class="ver-resp" data-r="${q.resp}" aria-pressed="false">Ver respuesta</button>` : ""}</div>`; }
@@ -226,7 +256,7 @@ document.addEventListener("click", e => { const b = e.target.closest(".ver-resp"
 function drawRep() { const f = $("#sel-rep").value; const gs = RP.lista.filter(g => !f || bloqueDe(g.tema) === f);
   $("#lst-rep").innerHTML = gs.slice(0, repN).map(g => `<details class="rep"><summary><span><b>${esc(g.preguntas[0].enunciado.slice(0, 150))}${g.preguntas[0].enunciado.length > 150 ? "…" : ""}</b><br><span class="note">${g.tema} · ${esc(TEMAS[g.tema] || "Sin clasificar")}</span></span><span>${g.anos.map(a => `<span class="chip on">${lblAno(String(a))}</span>`).join("")}</span></summary>${g.preguntas.map(qcard).join("")}</details>`).join("");
   $("#btn-rep").hidden = repN >= gs.length; }
-$("#sel-rep").addEventListener("change", () => { repN = 25; drawRep(); }); $("#btn-rep").addEventListener("click", () => { repN += 25; drawRep(); }); drawRep();
+$("#sel-rep").addEventListener("change", () => { repN = 10; drawRep(); }); $("#btn-rep").addEventListener("click", () => { repN += 20; drawRep(); }); drawRep();
 
 /* ---------- 4: formato y notas ---------- */
 const CV = D.conv || [];
@@ -271,7 +301,7 @@ function filterBanco() { const q = normTxt($("#f-q").value.trim()), t = $("#f-te
   const words = q.split(/\s+/).filter(Boolean);
   filtered = D.banco.map((b, i) => [b, i]).filter(([b, i]) => (!t || b[3] === t) && (!a || String(b[0]) === a) && (!p || b[1] === p) && (!conR || b[7] >= 0) && words.every(w => IDX[i].includes(w))).map(x => x[0]);
   page = 0; drawBanco(); }
-function drawBanco() { const per = 20, pages = Math.max(1, Math.ceil(filtered.length / per));
+function drawBanco() { const per = 10, pages = Math.max(1, Math.ceil(filtered.length / per));
   $("#f-count").textContent = `${fmt(filtered.length)} preguntas`;
   $("#lst-banco").innerHTML = filtered.slice(page * per, page * per + per).map(b => qcard({oep: b[0], parte: b[1] === "T" ? "teorico" : "practico", n: b[2], ej: b[7] >= 0 ? D.examen[b[7]].ej : "", enunciado: b[4], opciones: {a: b[5][0], b: b[5][1], c: b[5][2], d: b[5][3]}, resp: b[7] >= 0 ? D.examen[b[7]].r : null})
     .replace('</span>', `</span> <span class="pill">${esc((TEMAS[b[3]] || "Sin clasificar").slice(0, 70))}</span>`)).join("") || `<p class="note" style="margin-top:10px">Ninguna pregunta coincide con esos filtros. Prueba con menos palabras o quita algún filtro.</p>`;

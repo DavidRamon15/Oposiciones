@@ -99,7 +99,7 @@ nav.toc.compacto .nav-roles:not(:empty){flex-direction:column;margin:0;padding:0
 
 header.hero{padding-block:44px 32px;display:grid;gap:16px;grid-template-columns:minmax(0,1fr) auto;column-gap:36px;align-items:start}
 header.hero > *{grid-column:1}
-header.hero > .kpis,header.hero > .panel{grid-column:1 / -1}
+header.hero > .kpis,header.hero > .panel,header.hero > .seguir{grid-column:1 / -1}
 .hero-img{grid-column:2!important;grid-row:1 / span 4;width:min(360px,34vw);aspect-ratio:3 / 2;object-fit:cover;border-radius:18px;box-shadow:var(--sombra);
   border:6px solid var(--sheet);outline:1px solid var(--rule);background:var(--red-tint);align-self:center}
 @media (max-width:760px){header.hero{grid-template-columns:minmax(0,1fr)}.hero-img{grid-column:1!important;grid-row:auto;width:100%;max-width:100%}}
@@ -110,15 +110,37 @@ header.hero .lede{font-size:1.1rem;color:var(--ink-2);max-width:62ch}
 .kpi b{font-size:1.75rem;font-weight:700;line-height:1.1;letter-spacing:-.01em}
 .kpi span{font-size:.84rem;color:var(--ink-2);line-height:1.35}
 
-section{padding-block:52px 8px;display:grid;gap:20px;scroll-margin-top:calc(var(--nav-h) + 8px);border-top:1px solid var(--red-2);position:relative}
-section::before{content:"";position:absolute;left:0;right:0;top:3px;border-top:1px solid var(--red-2)}
+/* una sección cada vez: el menú cambia de vista en vez de bajar por una página larguísima */
+#main > header.hero:not(.actual),#main > section:not(.actual){display:none}
+section{padding-block:36px 8px;display:grid;gap:20px;scroll-margin-top:calc(var(--nav-h) + 8px);position:relative}
 section > header{display:grid;gap:8px}
+.an-tabs{display:flex;flex-wrap:wrap;gap:6px}
+.an-tabs a{font:500 .88rem/1 var(--f-ui);color:var(--ink-2);text-decoration:none;padding:8px 13px;border-radius:999px;border:1px solid var(--rule);background:var(--sheet)}
+.an-tabs a:hover{border-color:var(--red-2);color:var(--ink)}
+.an-tabs a[aria-current]{background:var(--red-tint);border-color:var(--red);color:var(--ink);font-weight:600}
+@media (max-width:600px){.an-tabs{flex-wrap:nowrap;overflow-x:auto;margin-inline:-20px;padding-inline:20px;scrollbar-width:none}.an-tabs a{white-space:nowrap}}
+details.plegable > summary{cursor:pointer;list-style:none;display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline}
+details.plegable > summary::-webkit-details-marker{display:none}
+details.plegable > summary h3::after{content:" +";color:var(--red)}
+details.plegable[open] > summary h3::after{content:" −"}
+details.como{font-size:.92rem;color:var(--ink-2)}
+details.como summary{cursor:pointer;width:fit-content;font:500 .86rem var(--f-ui);color:var(--pen)}
+details.como p{margin-top:6px;max-width:72ch}
+.seguir{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:12px}
+.seguir a{display:grid;gap:4px;padding:16px 18px;border:1px solid var(--rule);border-radius:var(--radio);background:var(--sheet);box-shadow:var(--sombra);color:var(--ink);text-decoration:none}
+.seguir a:hover{border-color:var(--red)}
+.seguir b{font-size:1.05rem}.seguir span{font-size:.86rem;color:var(--ink-2)}
 .panel{background:var(--sheet);border:1px solid var(--rule);border-radius:var(--radio);padding:22px;min-width:0;box-shadow:var(--sombra)}
 .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,430px),1fr));gap:20px}
 .takeaways{display:grid;gap:14px;counter-reset:t;padding:0;margin:0;list-style:none}
 .takeaways li{display:grid;grid-template-columns:2rem 1fr;gap:10px;align-items:start}
 .takeaways li::before{counter-increment:t;content:counter(t);display:grid;place-items:center;width:1.7rem;height:1.7rem;border:1.5px solid var(--red);border-radius:50%;color:var(--red);font-weight:700;font-size:.85rem;margin-top:1px}
 .takeaways p{max-width:72ch}
+.takeaways summary{cursor:pointer;list-style:none;display:flex;gap:8px;align-items:baseline;justify-content:space-between;font-weight:600;line-height:1.4}
+.takeaways summary::-webkit-details-marker{display:none}
+.takeaways summary::after{content:"+";font:600 1.1rem/1 var(--f-ui);color:var(--red)}
+.takeaways details[open] summary::after{content:"−"}
+.takeaways details p{margin-top:6px;color:var(--ink-2)}
 .legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.84rem;color:var(--ink-2)}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
 .scroll{overflow-x:auto;max-width:100%}
@@ -313,12 +335,12 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
 <nav class="toc" aria-label="Secciones"><div class="in">
   <a href="#inicio" id="nav-cambiar" class="marca" title="Cambiar de oposición"><span class="marca-sup">Radiografía de</span><span class="marca-op"><span id="nav-op"></span><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1.5 3.5 5 7l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></a>
   <div class="nav-items" id="nav-items">
+    <a href="#resumen" data-sec="resumen">Resumen</a>
     <a href="#examenes" class="nav-practicar" data-sec="examenes">Practicar</a>
     <div class="nav-grupo">
       <button type="button" class="nav-abre" id="nav-analisis-b" aria-expanded="false" aria-controls="nav-analisis">Análisis <svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1.5 3.5 5 7l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
       <div class="nav-menu" id="nav-analisis" hidden>
         <span class="nav-menu-t">Análisis de los exámenes</span>
-        <a href="#resumen" data-sec="resumen" data-grupo="analisis"><b>Resumen</b><small>Las cifras y las conclusiones principales</small></a>
         <a href="#temas" data-sec="temas" data-grupo="analisis"><b>Temas</b><small>Qué temas caen y cuánto pesa cada uno</small></a>
         <a href="#normas" data-sec="normas" data-grupo="analisis"><b id="nav-normas">Leyes y artículos</b><small>Lo que más se pregunta</small></a>
         <a href="#repetidas" data-sec="repetidas" data-grupo="analisis"><b>Preguntas repetidas</b><small>Cuestiones que vuelven a salir</small></a>
@@ -345,6 +367,11 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
     <h3 style="margin-bottom:10px">Lo que dicen los datos</h3>
     <ol class="takeaways" id="takeaways"></ol>
   </div>
+  <nav class="seguir" aria-label="Por dónde seguir">
+    <a href="#examenes"><b>Haz un examen</b><span>Simulacros y tests cortos corregidos con la plantilla oficial</span></a>
+    <a href="#temas"><b>Mira qué temas caen</b><span>El peso de cada tema y cada ley en los exámenes</span></a>
+    <a href="#banco"><b>Busca preguntas</b><span>Todas las preguntas por tema y convocatoria</span></a>
+  </nav>
 </header>
 
 <section id="examenes">
@@ -405,7 +432,7 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
 
 <section id="temas">
   <header><h2>¿De qué temas caen las preguntas?</h2>
-  <p class="ink2" id="temas-intro"></p></header>
+  <details class="como"><summary>Cómo se ha calculado</summary><p id="temas-intro"></p></details></header>
   <div class="panel">
     <h3>Peso de cada bloque del programa en el test</h3>
     <p class="note" style="margin:4px 0 10px">% de preguntas del test de cada convocatoria. Entre paréntesis, el peso del bloque en número de temas del programa actual.</p>
@@ -417,10 +444,11 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
       <div><h3>Mapa de calor: preguntas por tema y convocatoria</h3>
       <p class="note" style="margin-top:4px" id="heat-note"></p></div>
       <label for="sel-orden">Ordenar
-        <select id="sel-orden"><option value="prog">Por orden del programa</option><option value="rec" id="opt-rec">Más preguntados (recientes)</option><option value="tot">Más preguntados (total)</option></select></label>
+        <select id="sel-orden"><option value="rec" id="opt-rec">Más preguntados (recientes)</option><option value="prog">Por orden del programa</option><option value="tot">Más preguntados (total)</option></select></label>
     </div>
     <div class="legend" id="lg-heat" style="margin-top:10px"></div>
     <div class="scroll" style="margin-top:8px"><table class="heat" id="tb-heat"></table></div>
+    <button id="btn-heat" style="margin-top:12px"></button>
   </div>
   <div class="panel" id="panel-prac">
     <h3>Supuestos prácticos (2018–2025): temas más usados</h3>
@@ -431,7 +459,7 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
 
 <section id="normas">
   <header><h2 id="normas-title"></h2>
-  <p class="ink2" id="normas-intro"></p></header>
+  <details class="como"><summary>Cómo se ha calculado</summary><p id="normas-intro"></p></details></header>
   <div class="grid2">
     <div class="panel"><h3 id="normas-h3"></h3><div id="ch-normas" style="margin-top:10px"></div></div>
     <div class="panel" id="panel-literal"><h3>% de preguntas que citan un artículo concreto</h3>
@@ -442,12 +470,13 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
     <div class="controls" style="justify-content:space-between"><h3 id="arts-h3">Los artículos que más caen</h3>
       <label for="sel-norma" id="lb-norma">Norma <select id="sel-norma"></select></label></div>
     <div class="scroll" style="margin-top:10px"><table id="tb-arts"></table></div>
+    <button id="btn-arts" style="margin-top:12px"></button>
   </div>
 </section>
 
 <section id="repetidas">
   <header><h2>¿Se repiten las preguntas?</h2>
-  <p class="ink2" id="rep-intro">Se compararon todas las preguntas entre convocatorias distintas por su vocabulario (enunciado + opciones). Un parecido ≥ 0,55 es una pregunta casi literal; entre 0,38 y 0,55, la misma cuestión redactada de otra forma. Se agrupan las que comparten pareja.</p></header>
+  <details class="como"><summary>Cómo se ha calculado</summary><p id="rep-intro">Se compararon todas las preguntas entre convocatorias distintas por su vocabulario (enunciado + opciones). Un parecido ≥ 0,55 es una pregunta casi literal; entre 0,38 y 0,55, la misma cuestión redactada de otra forma. Se agrupan las que comparten pareja.</p></details></header>
   <div class="kpis" id="kpi-rep"></div>
   <div class="panel">
     <div class="controls" style="justify-content:space-between"><h3>Grupos de preguntas que vuelven</h3>
@@ -460,7 +489,7 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
 
 <section id="formato">
   <header><h2 id="formato-title">¿Cómo ha cambiado el examen y la nota de corte?</h2>
-  <p class="ink2" id="formato-intro"></p></header>
+  <details class="como"><summary>De dónde salen los datos</summary><p id="formato-intro"></p></details></header>
   <div class="panel" id="formato-extra" hidden></div>
   <div class="grid2" id="grid-cortes">
     <div class="panel"><h3>Nota de corte como % del máximo</h3>
@@ -471,8 +500,8 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
       <svg id="ch-ratio" role="img" aria-label="Presentados por plaza en cada convocatoria"></svg>
       <p class="note">2012 y 2013 sin convocatoria. En 2006 y 2007 no hay dato de presentados.</p></div>
   </div>
-  <div class="panel" id="panel-conv"><h3>Ficha de cada convocatoria</h3>
-    <div class="scroll" style="margin-top:10px"><table id="tb-conv"></table></div></div>
+  <details class="panel plegable" id="panel-conv"><summary><h3>Ficha de cada convocatoria</h3><span class="note">Plazas, formato, presentados y cortes, año a año</span></summary>
+    <div class="scroll" style="margin-top:10px"><table id="tb-conv"></table></div></details>
 </section>
 
 <section id="banco">
