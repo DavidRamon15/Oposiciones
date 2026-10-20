@@ -332,7 +332,11 @@ svg text{font-family:var(--f-ui)}
 .jg-op[disabled]{cursor:default;color:var(--ink)}
 .jg-op.ko{animation:jg-no .35s}
 @keyframes jg-no{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
-.jg-msg{min-height:1.5em;font-weight:600}.jg-msg.ok{color:var(--good)}.jg-msg.ko{color:var(--bad)}
+.jg-msg{min-height:1.5em;font-weight:600}
+.boe-l{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;margin-top:10px;font-size:.88rem}
+.boe-l span{color:var(--ink-2);font-weight:600}
+.boe-l a{color:var(--pen)}
+.boe-l a::after{content:" ↗";font-size:.8em}.jg-msg.ok{color:var(--good)}.jg-msg.ko{color:var(--bad)}
 .jg-fin{display:grid;gap:14px;border-top:1px solid var(--rule);padding-top:14px}
 .jg-fin-cab{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center;justify-content:space-between}
 .jg-fin-cab > div:first-child{display:grid;gap:2px}.jg-fin-cab span{font-weight:600;color:var(--ink-2)}
@@ -425,7 +429,7 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
   .exbar .row button{font-size:.8rem;padding:6px 9px}#ex-timer{font-size:.95rem;margin-right:auto}}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 </style>
-<link rel="stylesheet" href="cuenta.css?v=ed4d20c96b">
+<link rel="stylesheet" href="cuenta.css?v=65d5efa1ba">
 </head>
 <body>
 
@@ -552,6 +556,7 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
     <h3 class="jg-q" id="jg-q"></h3>
     <div class="jg-ops" id="jg-ops" role="group" aria-label="Respuestas"></div>
     <p class="jg-msg" id="jg-msg" aria-live="assertive"></p>
+    <div id="jg-boe"></div>
     <div class="jg-fin" id="jg-fin" hidden>
       <div class="jg-fin-cab"><div><span id="jg-fin-t">Fin de la partida</span><b id="jg-fin-n"></b></div>
         <div class="jg-fin-acc"><button class="primary" id="jg-otra">Jugar otra vez</button><button id="jg-volver">Volver al menú</button></div></div>
@@ -702,10 +707,10 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
 </div>
 <div class="tip" id="tip" hidden></div>
 
-<script>window.VERSION = "ed4d20c96b";</script>
-<script src="vendor/supabase.js?v=ed4d20c96b"></script>
-<script src="config.js?v=ed4d20c96b"></script>
-<script src="cuenta.js?v=ed4d20c96b"></script>
-<script src="cargador.js?v=ed4d20c96b"></script>
+<script>window.VERSION = "65d5efa1ba";</script>
+<script src="vendor/supabase.js?v=65d5efa1ba"></script>
+<script src="config.js?v=65d5efa1ba"></script>
+<script src="cuenta.js?v=65d5efa1ba"></script>
+<script src="cargador.js?v=65d5efa1ba"></script>
 </body>
 </html>

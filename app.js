@@ -15,7 +15,8 @@ if (C.color) { const rs = document.documentElement.style; rs.setProperty("--red"
 // el banco y las repetidas apuntan a la pregunta del examen (o del banco) en vez de repetir su texto
 D.banco.forEach(b => { if (b[7] >= 0) { const q = D.examen[b[7]]; b[4] = q.e; b[5] = q.o; } });
 R.repetidas.lista.forEach(g => g.preguntas.forEach(p => { if (p.b != null) { const b = D.banco[p.b]; p.enunciado = b[4];
-  p.opciones = Object.fromEntries(b[5].map((o, i) => ["abcd"[i], o])); p.resp = b[7] >= 0 ? D.examen[b[7]].r : null; } }));
+  p.opciones = Object.fromEntries(b[5].map((o, i) => ["abcd"[i], o])); p.resp = b[7] >= 0 ? D.examen[b[7]].r : null;
+  p.boe = b[7] >= 0 ? D.examen[b[7]].a : b[8]; p.boeOculto = b[7] >= 0; } }));   // enlaces al BOE (ver qcard)
 const $ = s => document.querySelector(s);
 const fmt = (n, d = 0) => n == null ? "—" : n.toLocaleString("es-ES", {minimumFractionDigits: d, maximumFractionDigits: d});
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
@@ -275,13 +276,21 @@ $("#kpi-rep").innerHTML = [[fmt(RP.preguntas), "preguntas con una pareja en otra
 const blqs = C.bloques.map(b => b[0]);
 $("#sel-rep").innerHTML += blqs.map(b => `<option>${b}</option>`).join("");
 let repN = 10;
+/* --- enlaces al BOE: el artículo (o la ley) que cita cada pregunta, en su texto consolidado --- */
+const boeUrl = (id, ancla) => `https://www.boe.es/buscar/act.php?id=${id}${ancla ? "#" + ancla : ""}`;
+function boeHTML(refs, oculto = false) { if (!refs?.length) return "";
+  return `<p class="boe-l"${oculto ? " hidden" : ""}><span>Repásalo en el BOE:</span> ${refs.map(([id, num, an, tit]) =>
+    `<a href="${boeUrl(id, an)}" target="_blank" rel="noopener">${esc(D.boe?.[id] || "la ley")}${num ? `, art. ${esc(num)}${tit ? ": " + esc(tit) : ""}` : ", texto completo"}</a>`).join("")}</p>`; }
+// del banco: la de un examen corregible enlaza lo que cita su respuesta (se ve al pulsar «Ver respuesta»); las demás, su enunciado
+const boeBanco = b => b[7] >= 0 ? {boe: D.examen[b[7]].a, boeOculto: true} : {boe: b[8], boeOculto: false};
 function qcard(q) { const ops = Object.values(q.opciones || {}).filter(Boolean);
   return `<div class="qcard"><span class="tag">${NOMBRE_OEP(String(q.oep))}${q.ej ? ", modelo " + q.ej : ""}, ${q.parte === "teorico" ? "test" : "supuesto práctico"}, pregunta ${q.n}</span><p style="margin-top:6px">${esc(q.enunciado)}</p>${ops.length ? `<ol>${ops.map((o, i) => `<li data-i="${i}">${esc(o)}</li>`).join("")}</ol>` : ""}` +
-    `${q.resp != null && ops.length ? `<button class="ver-resp" data-r="${q.resp}" aria-pressed="false">Ver respuesta</button>` : ""}</div>`; }
+    `${q.resp != null && ops.length ? `<button class="ver-resp" data-r="${q.resp}" aria-pressed="false">Ver respuesta</button>` : ""}${boeHTML(q.boe, q.boeOculto)}</div>`; }
 // «Ver respuesta» en el banco y en las repetidas
 document.addEventListener("click", e => { const b = e.target.closest(".ver-resp"); if (!b) return;
   const on = b.getAttribute("aria-pressed") !== "true"; b.setAttribute("aria-pressed", String(on)); b.textContent = on ? "Ocultar respuesta" : "Ver respuesta";
-  const li = b.closest(".qcard").querySelector(`li[data-i="${b.dataset.r}"]`); if (li) li.classList.toggle("ok", on); });
+  const li = b.closest(".qcard").querySelector(`li[data-i="${b.dataset.r}"]`); if (li) li.classList.toggle("ok", on);
+  const boe = b.closest(".qcard").querySelector(".boe-l"); if (boe) boe.hidden = !on; });
 function drawRep() { const f = $("#sel-rep").value; const gs = RP.lista.filter(g => !f || bloqueDe(g.tema) === f);
   $("#lst-rep").innerHTML = gs.slice(0, repN).map(g => `<details class="rep"><summary><span><b>${esc(g.preguntas[0].enunciado.slice(0, 150))}${g.preguntas[0].enunciado.length > 150 ? "…" : ""}</b><br><span class="note">${g.tema} · ${esc(TEMAS[g.tema] || "Sin clasificar")}</span></span><span>${g.anos.map(a => `<span class="chip on">${lblAno(String(a))}</span>`).join("")}</span></summary>${g.preguntas.map(qcard).join("")}</details>`).join("");
   $("#btn-rep").hidden = repN >= gs.length; }
@@ -332,7 +341,7 @@ function filterBanco() { const q = normTxt($("#f-q").value.trim()), t = $("#f-te
   page = 0; drawBanco(); }
 function drawBanco() { const per = 10, pages = Math.max(1, Math.ceil(filtered.length / per));
   $("#f-count").textContent = `${fmt(filtered.length)} preguntas`;
-  $("#lst-banco").innerHTML = filtered.slice(page * per, page * per + per).map(b => qcard({oep: b[0], parte: b[1] === "T" ? "teorico" : "practico", n: b[2], ej: b[7] >= 0 ? D.examen[b[7]].ej : "", enunciado: b[4], opciones: {a: b[5][0], b: b[5][1], c: b[5][2], d: b[5][3]}, resp: b[7] >= 0 ? D.examen[b[7]].r : null})
+  $("#lst-banco").innerHTML = filtered.slice(page * per, page * per + per).map(b => qcard({...boeBanco(b), oep: b[0], parte: b[1] === "T" ? "teorico" : "practico", n: b[2], ej: b[7] >= 0 ? D.examen[b[7]].ej : "", enunciado: b[4], opciones: {a: b[5][0], b: b[5][1], c: b[5][2], d: b[5][3]}, resp: b[7] >= 0 ? D.examen[b[7]].r : null})
     .replace('</span>', `</span> <span class="pill">${esc((TEMAS[b[3]] || "Sin clasificar").slice(0, 70))}</span>`)).join("") || `<p class="note" style="margin-top:10px">Ninguna pregunta coincide con esos filtros. Prueba con menos palabras o quita algún filtro.</p>`;
   $("#pg-info").textContent = `Página ${page + 1} de ${pages}`; $("#pg-prev").disabled = page === 0; $("#pg-next").disabled = page >= pages - 1; }
 ["#f-q", "#f-tema", "#f-ano", "#f-parte", "#f-resp"].forEach(s => $(s).addEventListener(s === "#f-q" ? "input" : "change", filterBanco));
@@ -341,7 +350,6 @@ filterBanco();
 
 /* ---------- temario: el programa oficial, tema a tema ---------- */
 const PROG = D.programa || [];
-const boeUrl = (id, ancla) => `https://www.boe.es/buscar/act.php?id=${id}${ancla ? "#" + ancla : ""}`;
 const boePdf = id => `https://www.boe.es/buscar/pdf/${id.split("-")[2]}/${id}-consolidado.pdf`;
 const pregTema = {}; D.banco.forEach(b => pregTema[b[3]] = (pregTema[b[3]] || 0) + 1);
 const tituloTema = f => TEMAS[f.k] || f.o || "";
@@ -456,7 +464,7 @@ function empezarJuego() { const p = poolJuego(); if (!p.length) return;
 function siguienteJuego() { const J = JUEGO;
   if (++J.i >= J.cola.length) { J.cola = shuffle(J.cola); J.i = 0; }   // se acabaron: se vuelven a barajar
   const q = J.cola[J.i], falsas = shuffle(q.o.map((_, j) => j).filter(j => j !== q.r)).slice(0, 2);
-  J.q = q; J.ops = shuffle([q.r, ...falsas]); J.resuelta = false;
+  J.q = q; J.ops = shuffle([q.r, ...falsas]); J.resuelta = false; $("#jg-boe").innerHTML = "";
   $("#jg-tag").textContent = `${NOMBRE_OEP(String(q.oep))} · ${q.tema}. ${TEMAS[q.tema] || ""}`;
   $("#jg-q").textContent = q.e;
   $("#jg-ops").innerHTML = J.ops.map((j, n) => `<button class="jg-op" data-j="${j}"><span class="l">${n + 1}</span><span>${esc(q.o[j])}</span></button>`).join("");
@@ -474,6 +482,7 @@ function responderJuego(b) { const J = JUEGO; if (!J || J.resuelta) return;
   botones.forEach(x => { x.disabled = true; if (+x.dataset.j === J.q.r) x.classList.add("ok"); });
   anotarJuego(J.q, bien);
   if (!bien) { b.classList.add("ko"); $("#jg-msg").textContent = "Esa no es: la correcta está marcada en verde."; $("#jg-msg").className = "jg-msg ko";
+    $("#jg-boe").innerHTML = boeHTML(J.q.a);   // dónde está la respuesta, para repasarla
     return setTimeout(() => { if (JUEGO === J) acabarJuego(); }, 900); }
   J.racha++; const r = $("#jg-racha"); r.classList.remove("jg-racha-sube"); void r.offsetWidth; r.classList.add("jg-racha-sube");
   $("#jg-msg").textContent = J.racha % 10 === 0 ? `¡${J.racha} seguidas! Siguiente pregunta…` : "¡Correcto! Siguiente pregunta…";
@@ -710,7 +719,7 @@ function drawReview() { const f = $("#ex-filtro").value; const qs = CUR.qs, rs =
   $("#ex-review").innerHTML = qs.map((q, k) => { const v = rs[k], est = v === null ? "bl" : v === q.r ? "ok" : "ko"; if (f === "mal" && est === "ok") return "";
     return `<div class="exq" id="rv${k}"><div class="hd"><span><span class="qn">${k + 1}</span><span class="src">${origen(q)}. ${esc(TEMAS[q.tema] || "")}</span></span><span class="${est === "ok" ? "res-ok" : est === "ko" ? "res-ko" : "res-bl"}">${est === "ok" ? "✓ Acierto" : est === "ko" ? "✗ Fallo" : "— En blanco"}</span></div>
       <p class="st">${esc(q.e)}</p>${q.o.map((o, j) => `<div class="opt ${j === q.r ? "ok" : j === v ? "ko" : ""}"><span class="l">${LET[j]}</span><span>${esc(o)}</span>${j === q.r ? `<span class="mk">✓ Correcta</span>` : j === v ? `<span class="mk">✗ Tu respuesta</span>` : ""}</div>`).join("")}
-      ${q.exp ? `<div class="explica">${esc(q.exp)}</div>` : `<button class="explain" data-k="${k}" style="margin-top:8px" hidden>Explícamela</button><div class="explica" id="exp${k}" hidden></div>`}</div>`; }).join("") ||
+      ${boeHTML(q.a)}${q.exp ? `<div class="explica">${esc(q.exp)}</div>` : `<button class="explain" data-k="${k}" style="margin-top:8px" hidden>Explícamela</button><div class="explica" id="exp${k}" hidden></div>`}</div>`; }).join("") ||
     `<p class="note">Todas correctas. Elige «Todas» para revisarlas.</p>`;
   bindExplain(); }
 $("#ex-filtro").onchange = drawReview;
