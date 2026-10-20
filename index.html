@@ -330,7 +330,19 @@ svg text{font-family:var(--f-ui)}
 .jg-fin-acc{display:flex;gap:8px;flex-wrap:wrap}
 .jg-ranking h3{font-size:1rem;margin-bottom:6px}
 .jg-ranking:not(:empty){margin-top:4px}
-#jg-ranking-cfg{border-top:1px solid var(--rule);padding-top:14px;margin-top:14px}
+.jg-menu{display:grid;gap:16px;min-width:0}
+.jg-menu > *{min-width:0;max-width:100%}
+.jg-menu label{display:grid;gap:4px;width:min(100%,460px)}.jg-menu select{width:100%}
+.jg-enlace{justify-self:start}
+.jg-menu h3{font-size:1.5rem}
+.jg-reglas{margin:0;padding:0;list-style:none;display:grid;gap:10px;counter-reset:r;max-width:60ch}
+.jg-reglas li{display:grid;grid-template-columns:2rem 1fr;gap:10px;align-items:start;line-height:1.45}
+.jg-reglas li::before{counter-increment:r;content:counter(r);display:grid;place-items:center;width:1.7rem;height:1.7rem;border-radius:50%;background:var(--red-tint);color:var(--red);font-weight:700;font-size:.85rem}
+.jg-menu-acc{display:flex;flex-wrap:wrap;gap:10px}
+.jg-menu-acc button{font-size:1rem;padding:11px 20px}
+.jg-record{font-size:.95rem;color:var(--ink-2)}.jg-record b{color:var(--red);font-size:1.1rem}
+.jg-enlace{background:none;border:0;padding:0;color:var(--pen);text-decoration:underline;font-size:.9rem}
+#jg-partida,#jg-rank-vista{display:grid;gap:14px}
 .jg-top{list-style:none;margin:0 0 6px;padding:0;display:grid;gap:4px;max-width:560px}
 .jg-top li{display:grid;grid-template-columns:1.6rem 3rem 1fr;gap:10px;align-items:center;padding:6px 10px;border-radius:8px}
 .jg-top li:nth-child(odd){background:var(--paper)}
@@ -404,7 +416,7 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
   .exbar .row button{font-size:.8rem;padding:6px 9px}#ex-timer{font-size:.95rem;margin-right:auto}}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 </style>
-<link rel="stylesheet" href="cuenta.css?v=9b709013cd">
+<link rel="stylesheet" href="cuenta.css?v=4d3b1a6695">
 </head>
 <body>
 
@@ -486,7 +498,6 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
     <div class="controls" style="margin-top:14px">
       <label for="ex-n" id="lb-n">Nº de preguntas<select id="ex-n"><option>20</option><option selected>40</option><option>60</option></select></label>
       <label for="ex-tema" id="lb-tema">Bloque o tema<select id="ex-tema"></select></label>
-      <label for="jg-tema" id="lb-jg" hidden>Preguntas de<select id="jg-tema"></select></label>
       <label for="ex-crono" class="check"><input type="checkbox" id="ex-crono" checked> Con cronómetro</label>
       <label for="ex-nuevas" class="check"><input type="checkbox" id="ex-nuevas"> Evitar preguntas ya hechas</label>
     </div>
@@ -495,7 +506,6 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
       <span class="note" id="ex-pool"></span>
     </div>
     <p class="note" id="ia-status" style="margin-top:8px"></p>
-    <div class="jg-ranking" id="jg-ranking-cfg" hidden></div>
   </div>
   <div class="panel" id="ex-prog">
     <div class="controls" style="justify-content:space-between;align-items:baseline"><h3>Tu progreso</h3><span class="note">Se guarda solo en este navegador</span></div>
@@ -504,6 +514,24 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
   </div>
 
   <div class="panel juego" id="ex-juego" hidden>
+    <div class="jg-menu" id="jg-menu">
+      <h3>Juego de la racha</h3>
+      <ol class="jg-reglas">
+        <li>Te sale una pregunta de examen real con tres respuestas.</li>
+        <li>Tienes una sola oportunidad: si aciertas, pasas a la siguiente.</li>
+        <li>Si fallas, verás cuál era la correcta y se acaba la partida. Tu puntuación es cuántas has acertado seguidas.</li>
+      </ol>
+      <label for="jg-tema">Preguntas de<select id="jg-tema"></select></label>
+      <p class="jg-record" id="jg-record"></p>
+      <div class="jg-menu-acc"><button class="primary" id="jg-empezar">Empezar a jugar</button><button id="jg-ver-ranking">Ver ranking</button></div>
+      <p class="note">Las preguntas que falles pasan a «Repasar mis fallos».</p>
+      <button class="jg-enlace" id="jg-a-examenes">Volver a los exámenes</button>
+    </div>
+    <div id="jg-rank-vista" hidden>
+      <div class="jg-ranking" id="jg-ranking-vista"></div>
+      <div><button id="jg-rank-volver">Volver al menú</button></div>
+    </div>
+    <div id="jg-partida" hidden>
     <div class="jg-marcador" aria-live="polite">
       <div><span>Seguidas</span><b id="jg-racha">0</b></div>
       <div><span>Tu récord</span><b id="jg-mejor">0</b></div>
@@ -516,8 +544,9 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
     <p class="jg-msg" id="jg-msg" aria-live="assertive"></p>
     <div class="jg-fin" id="jg-fin" hidden>
       <div class="jg-fin-cab"><div><span id="jg-fin-t">Fin de la partida</span><b id="jg-fin-n"></b></div>
-        <div class="jg-fin-acc"><button class="primary" id="jg-otra">Jugar otra vez</button><button id="jg-volver">Volver</button></div></div>
+        <div class="jg-fin-acc"><button class="primary" id="jg-otra">Jugar otra vez</button><button id="jg-volver">Volver al menú</button></div></div>
       <div class="jg-ranking" id="jg-ranking"></div>
+    </div>
     </div>
   </div>
 
@@ -663,10 +692,10 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
 </div>
 <div class="tip" id="tip" hidden></div>
 
-<script>window.VERSION = "9b709013cd";</script>
-<script src="vendor/supabase.js?v=9b709013cd"></script>
-<script src="config.js?v=9b709013cd"></script>
-<script src="cuenta.js?v=9b709013cd"></script>
-<script src="cargador.js?v=9b709013cd"></script>
+<script>window.VERSION = "4d3b1a6695";</script>
+<script src="vendor/supabase.js?v=4d3b1a6695"></script>
+<script src="config.js?v=4d3b1a6695"></script>
+<script src="cuenta.js?v=4d3b1a6695"></script>
+<script src="cargador.js?v=4d3b1a6695"></script>
 </body>
 </html>
