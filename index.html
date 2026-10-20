@@ -299,7 +299,15 @@ svg text{font-family:var(--f-ui)}
 .mode:has(input:checked){border-color:var(--pen);background:var(--pen-tint)}
 .mode input{margin-top:5px;accent-color:var(--pen)}
 .mode span{display:grid;gap:2px}.mode small{color:var(--ink-2);font-size:.82rem;line-height:1.35}
-.mode.modo-juego{border-color:var(--red-2);background:var(--red-tint)}
+/* «Practicar» en dos secciones: exámenes y tests, y el juego */
+.pr-tabs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px}
+.pr-tabs button{display:grid;gap:4px;text-align:left;padding:16px 18px;border:2px solid var(--rule);border-radius:var(--radio);background:var(--sheet);box-shadow:var(--sombra)}
+.pr-tabs button b{font-size:1.1rem}.pr-tabs button small{color:var(--ink-2);font-size:.86rem;line-height:1.35}
+.pr-tabs button:hover{border-color:var(--ink-2)}
+.pr-tabs button[aria-selected="true"]{border-color:var(--pen);background:var(--pen-tint)}
+.pr-tabs button#pr-tab-jg[aria-selected="true"]{border-color:var(--red);background:var(--red-tint)}
+.pr-tabs button[aria-selected="true"] b::after{content:"";display:block;width:28px;height:3px;border-radius:2px;margin-top:6px;background:currentColor}
+#examenes:has(#ex-run:not([hidden])) .pr-tabs,#examenes:has(#ex-res:not([hidden])) .pr-tabs{display:none}
 /* juego de la racha */
 .juego{display:grid;gap:14px;max-width:820px}
 .jg-marcador{display:flex;flex-wrap:wrap;gap:10px 26px;align-items:end}
@@ -333,7 +341,6 @@ svg text{font-family:var(--f-ui)}
 .jg-menu{display:grid;gap:16px;min-width:0}
 .jg-menu > *{min-width:0;max-width:100%}
 .jg-menu label{display:grid;gap:4px;width:min(100%,460px)}.jg-menu select{width:100%}
-.jg-enlace{justify-self:start}
 .jg-menu h3{font-size:1.5rem}
 .jg-reglas{margin:0;padding:0;list-style:none;display:grid;gap:10px;counter-reset:r;max-width:60ch}
 .jg-reglas li{display:grid;grid-template-columns:2rem 1fr;gap:10px;align-items:start;line-height:1.45}
@@ -341,7 +348,6 @@ svg text{font-family:var(--f-ui)}
 .jg-menu-acc{display:flex;flex-wrap:wrap;gap:10px}
 .jg-menu-acc button{font-size:1rem;padding:11px 20px}
 .jg-record{font-size:.95rem;color:var(--ink-2)}.jg-record b{color:var(--red);font-size:1.1rem}
-.jg-enlace{background:none;border:0;padding:0;color:var(--pen);text-decoration:underline;font-size:.9rem}
 #jg-partida,#jg-rank-vista{display:grid;gap:14px}
 .jg-top{list-style:none;margin:0 0 6px;padding:0;display:grid;gap:4px;max-width:560px}
 .jg-top li{display:grid;grid-template-columns:1.6rem 3rem 1fr;gap:10px;align-items:center;padding:6px 10px;border-radius:8px}
@@ -416,7 +422,7 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
   .exbar .row button{font-size:.8rem;padding:6px 9px}#ex-timer{font-size:.95rem;margin-right:auto}}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 </style>
-<link rel="stylesheet" href="cuenta.css?v=4d3b1a6695">
+<link rel="stylesheet" href="cuenta.css?v=c54305bd87">
 </head>
 <body>
 
@@ -482,8 +488,12 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
 </header>
 
 <section id="examenes">
-  <header><h2>Exámenes de práctica corregidos</h2>
-  <p class="ink2" id="ex-intro"></p></header>
+  <header><h2>Practicar</h2></header>
+  <div class="pr-tabs" role="tablist" aria-label="Qué quieres practicar">
+    <button role="tab" id="pr-tab-ex" aria-selected="true" aria-controls="ex-config"><b>Exámenes y tests</b><small>Simulacros oficiales, tests rápidos, por tema y repaso de tus fallos</small></button>
+    <button role="tab" id="pr-tab-jg" aria-selected="false" aria-controls="ex-juego"><b>Juego de la racha</b><small>Tres respuestas y una sola oportunidad: ¿cuántas aciertas seguidas?</small></button>
+  </div>
+  <p class="ink2" id="ex-intro"></p>
 
   <div class="panel" id="ex-config">
     <div class="resume" id="ex-curso" hidden></div>
@@ -491,7 +501,6 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
       <label class="mode"><input type="radio" name="modo" value="sim" checked><span><b>Simulacro oficial</b><small id="sim-desc"></small></span></label>
       <label class="mode"><input type="radio" name="modo" value="rapido"><span><b>Test rápido</b><small>De 20 a 60 preguntas al azar</small></span></label>
       <label class="mode"><input type="radio" name="modo" value="tema"><span><b>Por bloque o tema</b><small>Céntrate en lo que más fallas</small></span></label>
-      <label class="mode modo-juego"><input type="radio" name="modo" value="juego"><span><b>Juego de la racha</b><small>Tres respuestas y una sola oportunidad: ¿cuántas aciertas seguidas?</small></span></label>
       <label class="mode"><input type="radio" name="modo" value="fallos"><span><b>Repasar mis fallos</b><small id="fallos-n">Preguntas que has fallado antes</small></span></label>
       <label class="mode" id="mode-ia"><input type="radio" name="modo" value="ia"><span><b>Preguntas nuevas de Claude</b><small>Claude redacta 10 preguntas inéditas de un tema</small></span></label>
     </div>
@@ -515,7 +524,6 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
 
   <div class="panel juego" id="ex-juego" hidden>
     <div class="jg-menu" id="jg-menu">
-      <h3>Juego de la racha</h3>
       <ol class="jg-reglas">
         <li>Te sale una pregunta de examen real con tres respuestas.</li>
         <li>Tienes una sola oportunidad: si aciertas, pasas a la siguiente.</li>
@@ -525,7 +533,6 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
       <p class="jg-record" id="jg-record"></p>
       <div class="jg-menu-acc"><button class="primary" id="jg-empezar">Empezar a jugar</button><button id="jg-ver-ranking">Ver ranking</button></div>
       <p class="note">Las preguntas que falles pasan a «Repasar mis fallos».</p>
-      <button class="jg-enlace" id="jg-a-examenes">Volver a los exámenes</button>
     </div>
     <div id="jg-rank-vista" hidden>
       <div class="jg-ranking" id="jg-ranking-vista"></div>
@@ -692,10 +699,10 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
 </div>
 <div class="tip" id="tip" hidden></div>
 
-<script>window.VERSION = "4d3b1a6695";</script>
-<script src="vendor/supabase.js?v=4d3b1a6695"></script>
-<script src="config.js?v=4d3b1a6695"></script>
-<script src="cuenta.js?v=4d3b1a6695"></script>
-<script src="cargador.js?v=4d3b1a6695"></script>
+<script>window.VERSION = "c54305bd87";</script>
+<script src="vendor/supabase.js?v=c54305bd87"></script>
+<script src="config.js?v=c54305bd87"></script>
+<script src="cuenta.js?v=c54305bd87"></script>
+<script src="cargador.js?v=c54305bd87"></script>
 </body>
 </html>
