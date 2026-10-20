@@ -82,7 +82,7 @@
       aviso("No se pudo guardar el examen en tu cuenta: " + mensaje(error) + " Se reintentará al volver a abrir la web.", "error");
       return false;
     }
-    if (!reintento) aviso("Examen guardado en tu cuenta" + (i.tarea ? ". Tarea completada." : ""), "ok");
+    if (!reintento) aviso((i.juego ? "Partida guardada en tu cuenta" : "Examen guardado en tu cuenta") + (i.tarea ? ". Tarea completada." : ""), "ok");
     if (i.tarea) pintarTareas();
     return true;
   }
@@ -323,10 +323,11 @@
     try {
       const [rs, its] = await Promise.all([
         todas(() => sb.from("respuestas").select("pregunta, vistas, aciertos, ultimo").eq("usuario", PERFIL.id).eq("oposicion", op())),
-        sb.from("intentos").select("tipo, n, ok, ko, bl, nota, creado").eq("usuario", PERFIL.id).eq("oposicion", op()).order("creado").limit(500)]);
+        // los 500 más recientes (con el juego se acumulan muchos intentos), en orden de fecha
+        sb.from("intentos").select("tipo, n, ok, ko, bl, nota, creado").eq("usuario", PERFIL.id).eq("oposicion", op()).order("creado", {ascending: false}).limit(500)]);
       if (its.error) throw its.error;
       HIST = {stats: Object.fromEntries(rs.map(r => [r.pregunta, {vistas: r.vistas, aciertos: r.aciertos, ultimo: r.ultimo}])),
-        intentos: its.data.map(i => ({t: +new Date(i.creado), tipo: i.tipo, n: i.n, ok: i.ok, ko: i.ko, bl: i.bl, nota120: +i.nota}))};
+        intentos: its.data.reverse().map(i => ({t: +new Date(i.creado), tipo: i.tipo, n: i.n, ok: i.ok, ko: i.ko, bl: i.bl, nota120: +i.nota}))};
       saveHist(HIST); drawHist(); syncConfig();
     } catch (e) { aviso("No se pudo cargar tu progreso: " + mensaje(e) + " Se muestra la última copia de este dispositivo.", "error"); HIST = loadHist(); drawHist(); }
   }
@@ -430,7 +431,9 @@
     const intentos = its.data;
     const ops = [...new Set(intentos.map(i => i.oposicion))];
     const opF = a.oposicion && ops.includes(a.oposicion) ? a.oposicion : ops[0] || a.oposicion;
-    const delOp = intentos.filter(i => i.oposicion === opF);
+    // las partidas del juego de la racha van aparte: su «nota» es cuántas preguntas acertó seguidas
+    const esJuego = i => String(i.tipo).startsWith("Juego de la racha");
+    const delOp = intentos.filter(i => i.oposicion === opF && !esJuego(i)), juegos = intentos.filter(i => i.oposicion === opF && esJuego(i));
     // acierto por tema sumando el detalle de cada examen
     const temas = {};
     delOp.forEach(i => Object.entries(i.por_tema || {}).forEach(([t, x]) => { const o = temas[t] = temas[t] || {n: 0, mal: 0}; o.n += x.n; o.mal += x.mal; }));
@@ -440,6 +443,7 @@
     cont.innerHTML = `<div class="panel cu-ficha"><div class="controls" style="justify-content:space-between;align-items:baseline"><h3>${h(a.nombre || "Sin nombre")} <span class="note">${h(a.email || "")}</span></h3>
         <span class="acc"><button data-poner-f="1">Poner tarea</button>${puedeQuitar ? `<button id="fi-quitar">Dejar de llevarlo</button>` : ""}<button id="fi-cerrar">Cerrar ficha</button></span></div>
       ${ops.length > 1 ? `<p class="note">Ha practicado ${ops.map(nombreOp).join(", ")}; aquí se muestra ${h(nombreOp(opF))}.</p>` : ""}
+      ${juegos.length ? `<p class="note">Juego de la racha: récord de <b>${Math.max(...juegos.map(i => +i.nota))}</b> seguidas en ${juegos.length} partida${juegos.length === 1 ? "" : "s"}.</p>` : ""}
       ${delOp.length ? `<div class="grid2"><div><h4>Evolución de la nota (últimos ${ult.length})</h4>${grafNotas(ult)}</div>
         <div><h4>Acierto por tema, los más flojos primero</h4>${peores.length ? `<ul class="cu-temas">${peores.map(p => `<li><span>${h(nombres[p.t] || p.t)}</span><span class="cu-barra"><i style="width:${Math.round(100 * p.ac)}%"></i></span><span class="num">${Math.round(100 * p.ac)} % de ${p.n}</span></li>`).join("")}</ul>` : `<p class="note">Aún no hay bastantes preguntas por tema.</p>`}</div></div>
         <h4>Exámenes</h4><div class="scroll"><table class="cu-tabla"><thead><tr><th>Fecha</th><th>Tipo</th><th class="num">Nota</th><th class="num">Aciertos</th><th class="num">Fallos</th><th class="num">En blanco</th><th class="num">Tiempo</th></tr></thead><tbody>${delOp.slice(0, 15).map(i => `<tr><td>${fecha(i.creado)}</td><td>${h(i.tipo)}</td><td class="num"><b>${fmt(+i.nota, 1)}</b> / ${i.escala}</td><td class="num">${i.ok}</td><td class="num">${i.ko}</td><td class="num">${i.bl}</td><td class="num">${i.segundos == null ? "—" : i.segundos < 60 ? "menos de 1 min" : Math.round(i.segundos / 60) + " min"}</td></tr>`).join("")}</tbody></table></div>`

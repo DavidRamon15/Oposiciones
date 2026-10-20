@@ -420,10 +420,10 @@ function syncConfig() { const m = modo(), jg = m === "juego";
   $("#lb-n").hidden = m === "sim" || m === "ia" || jg; $("#lb-tema").hidden = !(m === "tema" || m === "ia");
   $("#ex-nuevas").parentElement.hidden = m === "fallos" || m === "ia" || jg;
   $("#ex-crono").parentElement.hidden = jg; $("#lb-jg").hidden = !jg;
-  $("#fallos-n").textContent = `${fallosIds().length} preguntas que has fallado o dejado en blanco`;
+  $("#fallos-n").textContent = `${fallosIds().length} pregunta${fallosIds().length === 1 ? "" : "s"} que has fallado o dejado en blanco`;
   $("#ex-pool").textContent = m === "ia" ? "Usa tu cuenta de Claude; tarda 30–60 s en prepararlas." : jg ? `${fmt(poolJuego().length)} preguntas para jugar`
     : `${fmt(unicas(pool()).length)} preguntas disponibles de ${fmt(unicas(EX).length)}`;
-  $("#ex-start").textContent = m === "ia" ? "Generar 10 preguntas" : jg ? "Empezar a jugar" : "Empezar examen"; }
+  $("#ex-start").textContent = m === "ia" ? "Generar 10 preguntas" : jg ? "Empezar a jugar" : "Empezar examen"; pintarRankingCfg(); }
 document.querySelectorAll('input[name="modo"], #ex-tema, #ex-nuevas, #jg-tema').forEach(e => e.addEventListener("change", syncConfig));
 
 /* --- juego de la racha: una pregunta, 3 respuestas, solo se avanza al acertar --- */
@@ -434,44 +434,77 @@ $("#jg-tema").innerHTML = `<option value="">Todo el temario</option>` + BLQ.map(
   Object.entries(TEMAS).filter(([k]) => !k.startsWith("X")).map(([k, v]) => { const n = JUGABLES.filter(q => q.tema === k).length; return n >= 5 ? `<option value="T:${k}">${k}. ${esc(v)} (${n})</option>` : ""; }).join("");
 function poolJuego() { const v = $("#jg-tema").value;
   return !v ? JUGABLES : v.startsWith("B:") ? JUGABLES.filter(q => bloqueDe(q.tema) === v.slice(2)) : JUGABLES.filter(q => q.tema === v.slice(2)); }
-const LSJ = () => LS + LS_SUF + "-racha";
-const mejorRacha = () => { try { return +localStorage.getItem(LSJ()) || 0; } catch (e) { return 0; } };
+// cada partida se guarda como un intento más (tipo «Juego de la racha…», nota = preguntas seguidas acertadas):
+// así sus fallos van a «Repasar mis fallos» y el ranking viaja con la cuenta, sin tablas nuevas
+const TIPO_JUEGO = "Juego de la racha";
+const esJuego = x => String(x.tipo || "").startsWith(TIPO_JUEGO);
+const examenes = () => HIST.intentos.filter(x => !esJuego(x));
+const partidas = () => HIST.intentos.filter(esJuego);
+const recordJuego = () => Math.max(0, ...partidas().map(x => x.nota120));
 let JUEGO = null;
 function empezarJuego() { const p = poolJuego(); if (!p.length) return;
-  JUEGO = {cola: shuffle(p), i: -1, racha: 0, mejor: mejorRacha(), primera: 0, hechas: 0};
-  $("#ex-config").hidden = true; $("#ex-prog").hidden = true; $("#ex-juego").hidden = false;
+  const sel = $("#jg-tema");
+  JUEGO = {cola: shuffle(p), i: -1, racha: 0, record: recordJuego(), resp: [], inicio: Date.now(), ambito: sel.options[sel.selectedIndex].text.replace(/ \(\d+\)$/, "")};
+  $("#ex-config").hidden = true; $("#ex-prog").hidden = true; $("#ex-juego").hidden = false; $("#jg-fin").hidden = true;
   siguienteJuego(); $("#ex-juego").scrollIntoView({block: "start"}); }
 function siguienteJuego() { const J = JUEGO;
   if (++J.i >= J.cola.length) { J.cola = shuffle(J.cola); J.i = 0; }   // se acabaron: se vuelven a barajar
   const q = J.cola[J.i], falsas = shuffle(q.o.map((_, j) => j).filter(j => j !== q.r)).slice(0, 2);
-  J.q = q; J.ops = shuffle([q.r, ...falsas]); J.fallada = false;
+  J.q = q; J.ops = shuffle([q.r, ...falsas]); J.resuelta = false;
   $("#jg-tag").textContent = `${NOMBRE_OEP(String(q.oep))} · ${q.tema}. ${TEMAS[q.tema] || ""}`;
   $("#jg-q").textContent = q.e;
   $("#jg-ops").innerHTML = J.ops.map((j, n) => `<button class="jg-op" data-j="${j}"><span class="l">${n + 1}</span><span>${esc(q.o[j])}</span></button>`).join("");
   $("#jg-msg").textContent = ""; $("#jg-msg").className = "jg-msg"; pintarJuego();
   $("#jg-ops button").focus({preventScroll: true}); }
 function pintarJuego() { const J = JUEGO;
-  $("#jg-racha").textContent = J.racha; $("#jg-mejor").textContent = J.mejor; $("#jg-primera").textContent = `${J.primera} de ${J.hechas}`;
-  // la barra se llena hasta la siguiente decena de la racha
-  $("#jg-meta").style.width = `${(J.racha % 10) * 10}%`; }
-function responderJuego(b) { const J = JUEGO; if (!J || b.disabled || J.resuelta) return;
-  const j = +b.dataset.j;
-  if (j !== J.q.r) {   // fallo: la racha vuelve a cero y hay que seguir hasta dar con la buena
-    b.classList.add("ko"); b.disabled = true; J.fallada = true; J.racha = 0;
-    $("#jg-msg").textContent = "Esa no es. Prueba otra vez."; $("#jg-msg").className = "jg-msg ko"; pintarJuego(); return; }
-  J.resuelta = true; b.classList.add("ok"); $("#jg-ops").querySelectorAll("button").forEach(x => x.disabled = true);
-  J.hechas++;
-  if (!J.fallada) { J.primera++; J.racha++;
-    if (J.racha > J.mejor) { J.mejor = J.racha; try { localStorage.setItem(LSJ(), String(J.mejor)); } catch (e) { /* sin almacenamiento */ } }
-    const r = $("#jg-racha"); r.classList.remove("jg-racha-sube"); void r.offsetWidth; r.classList.add("jg-racha-sube"); }
-  $("#jg-msg").textContent = J.fallada ? "Ahora sí. Siguiente pregunta…" : J.racha % 10 === 0 ? `¡${J.racha} seguidas! Siguiente pregunta…` : "¡Correcto! Siguiente pregunta…";
+  $("#jg-racha").textContent = J.racha; $("#jg-mejor").textContent = Math.max(J.record, J.racha);
+  $("#jg-meta").style.width = `${(J.racha % 10) * 10}%`; }   // la barra se llena hasta la siguiente decena
+// cada respuesta cuenta como en un examen: la fallada pasa a «Repasar mis fallos» y la acertada sale de ahí
+function anotarJuego(q, bien) { const s = HIST.stats[q.id] || {vistas: 0, aciertos: 0}; s.vistas++; if (bien) s.aciertos++; s.ultimo = bien ? "ok" : "ko";
+  HIST.stats[q.id] = s; saveHist(HIST); JUEGO.resp.push({q: q.id, v: bien ? "ok" : "ko"}); }
+// una sola oportunidad: si fallas se marca la correcta y se acaba la partida
+function responderJuego(b) { const J = JUEGO; if (!J || J.resuelta) return;
+  J.resuelta = true; const j = +b.dataset.j, bien = j === J.q.r, botones = [...$("#jg-ops").children];
+  botones.forEach(x => { x.disabled = true; if (+x.dataset.j === J.q.r) x.classList.add("ok"); });
+  anotarJuego(J.q, bien);
+  if (!bien) { b.classList.add("ko"); $("#jg-msg").textContent = "Esa no es: la correcta está marcada en verde."; $("#jg-msg").className = "jg-msg ko";
+    return setTimeout(() => { if (JUEGO === J) acabarJuego(); }, 900); }
+  J.racha++; const r = $("#jg-racha"); r.classList.remove("jg-racha-sube"); void r.offsetWidth; r.classList.add("jg-racha-sube");
+  $("#jg-msg").textContent = J.racha % 10 === 0 ? `¡${J.racha} seguidas! Siguiente pregunta…` : "¡Correcto! Siguiente pregunta…";
   $("#jg-msg").className = "jg-msg ok"; pintarJuego();
-  setTimeout(() => { if (JUEGO === J) { J.resuelta = false; siguienteJuego(); } }, J.fallada ? 1800 : 1100); }
+  setTimeout(() => { if (JUEGO === J) siguienteJuego(); }, 1100); }
+// la partida se guarda como intento: en este navegador y, con sesión, en la cuenta
+// (el servidor admite hasta 200 respuestas por intento: de una partida más larga van las 200 últimas)
+function guardarPartida(J) { if (!J.resp.length) return;
+  const tipo = `${TIPO_JUEGO}: ${J.ambito}`, cuenta = rs => rs.filter(x => x.v === "ok").length;
+  HIST.intentos.push({t: Date.now(), tipo, n: J.resp.length, ok: cuenta(J.resp), ko: J.resp.length - cuenta(J.resp), bl: 0, nota120: J.racha}); saveHist(HIST);
+  const rs = J.resp.slice(-200);
+  GANCHOS.alCorregir?.({tipo, n: rs.length, ok: cuenta(rs), ko: rs.length - cuenta(rs), bl: 0, nota: J.racha, escala: 0, segundos: Math.round((Date.now() - J.inicio) / 1000),
+    tarea: null, por_bloque: {}, por_tema: {}, respuestas: rs, juego: true}); }
+function acabarJuego() { const J = JUEGO; if (!J) return; J.resuelta = true;
+  const record = J.racha > J.record && J.racha > 0;
+  guardarPartida(J);
+  $("#jg-fin-t").textContent = record ? "¡Nuevo récord!" : "Fin de la partida";
+  $("#jg-fin-n").textContent = `${J.racha} seguida${J.racha === 1 ? "" : "s"}`;
+  $("#jg-fin").classList.toggle("record", record);
+  $("#jg-ranking").innerHTML = rankingHTML(J.fin = Date.now()); $("#jg-fin").hidden = false; pintarJuego();
+  $("#jg-otra").focus({preventScroll: true}); }
+// ranking personal: tus 10 mejores partidas (la que acabas de jugar, resaltada)
+function rankingHTML(ultima) { const ps = partidas(), top = [...ps].sort((a, b) => b.nota120 - a.nota120 || a.t - b.t).slice(0, 10);
+  if (!ps.length) return `<p class="note">Aún no has jugado ninguna partida. Tu mejor puntuación aparecerá aquí.</p>`;
+  const dia = t => new Date(t).toLocaleDateString("es-ES", {day: "numeric", month: "short", year: "numeric"});
+  return `<h3>Tu ranking</h3><ol class="jg-top">${top.map((x, i) => `<li${ultima && Math.abs(x.t - ultima) < 3000 ? ' class="tuya"' : ""}><span class="pos">${i + 1}</span>
+      <b>${x.nota120}</b><span class="det">${esc(x.tipo.slice(TIPO_JUEGO.length + 2) || "Todo el temario")}<small>${dia(x.t)}</small></span></li>`).join("")}</ol>
+    <p class="note">${ps.length} partida${ps.length === 1 ? "" : "s"} jugada${ps.length === 1 ? "" : "s"}; media de ${fmt(ps.reduce((a, x) => a + x.nota120, 0) / ps.length, 1)} seguidas.</p>`; }
+function pintarRankingCfg() { const el = $("#jg-ranking-cfg"); el.hidden = modo() !== "juego"; if (!el.hidden) el.innerHTML = rankingHTML(); }
 $("#jg-ops").addEventListener("click", e => { const b = e.target.closest(".jg-op"); if (b) responderJuego(b); });
 document.addEventListener("keydown", e => { if (!JUEGO || $("#ex-juego").hidden || !/^[1-3]$/.test(e.key) || e.target.matches?.("input, select, textarea")) return;
   const b = $("#jg-ops").children[+e.key - 1]; if (b) responderJuego(b); });
-$("#jg-salir").onclick = () => { const J = JUEGO; JUEGO = null; $("#ex-juego").hidden = true; $("#ex-config").hidden = false; $("#ex-prog").hidden = false; syncConfig();
-  if (J && J.hechas) $("#ex-pool").textContent = `Partida terminada: ${J.hechas} preguntas, ${J.primera} a la primera. Tu mejor racha: ${J.mejor}.`; };
+function cerrarJuego() { JUEGO = null; $("#ex-juego").hidden = true; $("#ex-config").hidden = false; $("#ex-prog").hidden = false; drawHist(); syncConfig(); }
+// «Terminar» a mitad de partida: cuenta lo que llevabas acertado seguido
+$("#jg-salir").onclick = () => { if (JUEGO && !$("#jg-fin").hidden) return cerrarJuego(); if (JUEGO?.resp.length) acabarJuego(); else cerrarJuego(); };
+$("#jg-volver").onclick = cerrarJuego;
+$("#jg-otra").onclick = () => { JUEGO = null; empezarJuego(); };
 
 /* --- tu progreso: acierto por tema y qué repasar primero --- */
 const peso = t => (tm[t] || {}).pct_ultimos || 0;            // % medio del tema en los últimos exámenes
@@ -491,7 +524,7 @@ function practicar(t) { document.querySelector('input[name="modo"][value="tema"]
   $("#ex-config").scrollIntoView({behavior: "smooth", block: "start"}); $("#ex-start").focus({preventScroll: true}); }
 document.addEventListener("click", e => { const b = e.target.closest("[data-practicar]"); if (b) practicar(b.dataset.practicar); });
 let progTodos = false;
-function drawProg() { const el = $("#prog-body"), it = HIST.intentos;
+function drawProg() { const el = $("#prog-body"), it = examenes();
   if (!it.length) { el.innerHTML = `<p class="note" style="margin-top:6px">Cuando corrijas tu primer examen verás aquí tu acierto por tema y qué temas te conviene repasar primero, según lo que pesan en el examen real.</p>`; return; }
   const ids = Object.keys(HIST.stats).filter(id => EXI[id]), total = unicas(EX).length;
   let v = 0, a = 0; ids.forEach(id => { v += HIST.stats[id].vistas; a += HIST.stats[id].aciertos; });
@@ -526,7 +559,7 @@ function sparkNotas(it) { const W = 520, H = 110, m = {l: 30, r: 14, t: 12, b: 2
     <text x="${x(L)}" y="${y(it[L].nota120) - 8}" text-anchor="end" font-size="11" font-weight="600" style="fill:var(--ink)">${fmt(it[L].nota120, 1)}</text>
     <text x="${m.l}" y="${H - 4}" font-size="10" style="fill:var(--muted)">Tus últimos ${it.length} intentos. Línea discontinua: ${esc(CORTES.reduce((a, b) => b[1] > a[1] ? b : a)[0])}</text></svg>`; }
 
-function drawHist() { drawProg(); const it = HIST.intentos.slice(-8).reverse();
+function drawHist() { drawProg(); pintarRankingCfg(); const it = examenes().slice(-8).reverse();
   $("#ex-hist").innerHTML = it.length ? `<h3 style="font-size:1rem;margin-bottom:6px">Tus últimos intentos</h3><div class="scroll"><table><thead><tr><th>Fecha</th><th>Tipo</th><th class="num">Preguntas</th><th class="num">Aciertos</th><th class="num">Fallos</th><th class="num">Nota sobre ${ESC}</th></tr></thead><tbody>` +
     it.map(x => `<tr><td>${new Date(x.t).toLocaleString("es-ES", {dateStyle: "short", timeStyle: "short"})}</td><td>${esc(x.tipo)}</td><td class="num">${x.n}</td><td class="num">${x.ok}</td><td class="num">${x.ko}</td><td class="num"><b>${fmt(x.nota120, 1)}</b></td></tr>`).join("") + `</tbody></table></div>` : ""; }
 

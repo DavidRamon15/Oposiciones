@@ -322,6 +322,23 @@ svg text{font-family:var(--f-ui)}
 .jg-op.ko{animation:jg-no .35s}
 @keyframes jg-no{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 .jg-msg{min-height:1.5em;font-weight:600}.jg-msg.ok{color:var(--good)}.jg-msg.ko{color:var(--bad)}
+.jg-fin{display:grid;gap:14px;border-top:1px solid var(--rule);padding-top:14px}
+.jg-fin-cab{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center;justify-content:space-between}
+.jg-fin-cab > div:first-child{display:grid;gap:2px}.jg-fin-cab span{font-weight:600;color:var(--ink-2)}
+.jg-fin-cab b{font-size:2rem;line-height:1.1}
+.jg-fin.record .jg-fin-cab span{color:var(--red)}.jg-fin.record .jg-fin-cab b{color:var(--red)}
+.jg-fin-acc{display:flex;gap:8px;flex-wrap:wrap}
+.jg-ranking h3{font-size:1rem;margin-bottom:6px}
+.jg-ranking:not(:empty){margin-top:4px}
+#jg-ranking-cfg{border-top:1px solid var(--rule);padding-top:14px;margin-top:14px}
+.jg-top{list-style:none;margin:0 0 6px;padding:0;display:grid;gap:4px;max-width:560px}
+.jg-top li{display:grid;grid-template-columns:1.6rem 3rem 1fr;gap:10px;align-items:center;padding:6px 10px;border-radius:8px}
+.jg-top li:nth-child(odd){background:var(--paper)}
+.jg-top li.tuya{background:var(--red-tint);outline:1.5px solid var(--red)}
+.jg-top .pos{font:600 .85rem var(--f-ui);color:var(--ink-2);text-align:center}
+.jg-top li:first-child .pos{color:var(--red)}
+.jg-top b{font-size:1.2rem;font-variant-numeric:tabular-nums;text-align:right}
+.jg-top .det{display:flex;flex-wrap:wrap;gap:2px 10px;align-items:baseline;font-size:.9rem;min-width:0}.jg-top small{color:var(--muted);font-size:.8rem}
 @media (prefers-reduced-motion:reduce){.jg-op.ko,.jg-racha-sube{animation:none}}
 label.check{display:flex;flex-direction:row;align-items:center;gap:6px;font-size:.88rem;color:var(--ink-2)}
 label.check input{accent-color:var(--pen)}
@@ -387,7 +404,7 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
   .exbar .row button{font-size:.8rem;padding:6px 9px}#ex-timer{font-size:.95rem;margin-right:auto}}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 </style>
-<link rel="stylesheet" href="cuenta.css?v=c4ec5d9423">
+<link rel="stylesheet" href="cuenta.css?v=9b709013cd">
 </head>
 <body>
 
@@ -462,7 +479,7 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
       <label class="mode"><input type="radio" name="modo" value="sim" checked><span><b>Simulacro oficial</b><small id="sim-desc"></small></span></label>
       <label class="mode"><input type="radio" name="modo" value="rapido"><span><b>Test rápido</b><small>De 20 a 60 preguntas al azar</small></span></label>
       <label class="mode"><input type="radio" name="modo" value="tema"><span><b>Por bloque o tema</b><small>Céntrate en lo que más fallas</small></span></label>
-      <label class="mode modo-juego"><input type="radio" name="modo" value="juego"><span><b>Juego de la racha</b><small>Una pregunta y 3 respuestas: solo avanzas si aciertas</small></span></label>
+      <label class="mode modo-juego"><input type="radio" name="modo" value="juego"><span><b>Juego de la racha</b><small>Tres respuestas y una sola oportunidad: ¿cuántas aciertas seguidas?</small></span></label>
       <label class="mode"><input type="radio" name="modo" value="fallos"><span><b>Repasar mis fallos</b><small id="fallos-n">Preguntas que has fallado antes</small></span></label>
       <label class="mode" id="mode-ia"><input type="radio" name="modo" value="ia"><span><b>Preguntas nuevas de Claude</b><small>Claude redacta 10 preguntas inéditas de un tema</small></span></label>
     </div>
@@ -478,6 +495,7 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
       <span class="note" id="ex-pool"></span>
     </div>
     <p class="note" id="ia-status" style="margin-top:8px"></p>
+    <div class="jg-ranking" id="jg-ranking-cfg" hidden></div>
   </div>
   <div class="panel" id="ex-prog">
     <div class="controls" style="justify-content:space-between;align-items:baseline"><h3>Tu progreso</h3><span class="note">Se guarda solo en este navegador</span></div>
@@ -487,9 +505,8 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
 
   <div class="panel juego" id="ex-juego" hidden>
     <div class="jg-marcador" aria-live="polite">
-      <div><span>Racha</span><b id="jg-racha">0</b></div>
-      <div><span>Tu mejor racha</span><b id="jg-mejor">0</b></div>
-      <div><span>A la primera</span><b id="jg-primera">0 de 0</b></div>
+      <div><span>Seguidas</span><b id="jg-racha">0</b></div>
+      <div><span>Tu récord</span><b id="jg-mejor">0</b></div>
       <button id="jg-salir">Terminar</button>
     </div>
     <div class="jg-meta" aria-hidden="true"><i id="jg-meta"></i></div>
@@ -497,6 +514,11 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
     <h3 class="jg-q" id="jg-q"></h3>
     <div class="jg-ops" id="jg-ops" role="group" aria-label="Respuestas"></div>
     <p class="jg-msg" id="jg-msg" aria-live="assertive"></p>
+    <div class="jg-fin" id="jg-fin" hidden>
+      <div class="jg-fin-cab"><div><span id="jg-fin-t">Fin de la partida</span><b id="jg-fin-n"></b></div>
+        <div class="jg-fin-acc"><button class="primary" id="jg-otra">Jugar otra vez</button><button id="jg-volver">Volver</button></div></div>
+      <div class="jg-ranking" id="jg-ranking"></div>
+    </div>
   </div>
 
   <div id="ex-run" hidden>
@@ -641,10 +663,10 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
 </div>
 <div class="tip" id="tip" hidden></div>
 
-<script>window.VERSION = "c4ec5d9423";</script>
-<script src="vendor/supabase.js?v=c4ec5d9423"></script>
-<script src="config.js?v=c4ec5d9423"></script>
-<script src="cuenta.js?v=c4ec5d9423"></script>
-<script src="cargador.js?v=c4ec5d9423"></script>
+<script>window.VERSION = "9b709013cd";</script>
+<script src="vendor/supabase.js?v=9b709013cd"></script>
+<script src="config.js?v=9b709013cd"></script>
+<script src="cuenta.js?v=9b709013cd"></script>
+<script src="cargador.js?v=9b709013cd"></script>
 </body>
 </html>
