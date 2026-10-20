@@ -419,6 +419,17 @@ function saveHist(h) { try { localStorage.setItem(LS + LS_SUF, JSON.stringify(h)
 let HIST = loadHist();
 const shuffle = a => { a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const fallosIds = () => Object.entries(HIST.stats).filter(([id, s]) => s.ultimo !== "ok" && EXI[id]).map(([id]) => id);
+// repaso espaciado (las mismas reglas que registrar_intento en el servidor): un fallo pone la pregunta en la caja 1, que
+// vuelve al día siguiente; cada acierto en su fecha la pasa a la caja siguiente (3, 7 y 14 días) y en la caja 4 sale del repaso
+const hoyISO = (dias = 0) => { const d = new Date(); d.setDate(d.getDate() + dias); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+const ESPERA = {1: 3, 2: 7, 3: 14};
+function programar(s, bien) { const hoy = hoyISO();
+  if (!bien) { s.caja = 1; s.prox = hoyISO(1); return; }
+  if (!s.caja || s.prox > hoy) return;   // no estaba en el repaso, o la acierta antes de tiempo
+  if (s.caja >= 4) { delete s.caja; delete s.prox; return; }
+  s.prox = hoyISO(ESPERA[s.caja]); s.caja++; }
+const repasoIds = (hasta = hoyISO()) => Object.entries(HIST.stats).filter(([id, s]) => s.caja && s.prox <= hasta && EXI[id]).map(([id]) => id);
+const enRepaso = () => Object.values(HIST.stats).filter(s => s.caja).length;
 
 // la misma pregunta puede repetirse en varias convocatorias: que no salga dos veces en un examen
 const clave = q => normTxt(q.e).replace(/[^a-z0-9]+/g, " ").slice(0, 160);
@@ -430,12 +441,16 @@ const modo = () => document.querySelector('input[name="modo"]:checked').value;
 function pool() { const m = modo(), sinRep = $("#ex-nuevas").checked; let p = EX;
   if (m === "tema") { const v = selTema.value; p = v.startsWith("B:") ? EX.filter(q => bloqueDe(q.tema) === v.slice(2)) : EX.filter(q => q.tema === v.slice(2)); }
   if (m === "fallos") { const ids = new Set(fallosIds()); p = EX.filter(q => ids.has(q.id)); }
-  if (sinRep && m !== "fallos") p = p.filter(q => !HIST.stats[q.id]);
+  if (m === "repaso") { const ids = new Set(repasoIds()); p = EX.filter(q => ids.has(q.id)); }
+  if (sinRep && m !== "fallos" && m !== "repaso") p = p.filter(q => !HIST.stats[q.id]);
   return p; }
 function syncConfig() { const m = modo();
   $("#lb-n").hidden = m === "sim" || m === "ia"; $("#lb-tema").hidden = !(m === "tema" || m === "ia");
-  $("#ex-nuevas").parentElement.hidden = m === "fallos" || m === "ia";
+  $("#lb-n").hidden ||= m === "repaso";
+  $("#ex-nuevas").parentElement.hidden = m === "fallos" || m === "ia" || m === "repaso";
   $("#fallos-n").textContent = `${fallosIds().length} pregunta${fallosIds().length === 1 ? "" : "s"} que has fallado o dejado en blanco`;
+  const hoyN = repasoIds().length, manana = repasoIds(hoyISO(1)).length - hoyN;
+  $("#repaso-n").textContent = hoyN ? `${hoyN} pregunta${hoyN === 1 ? "" : "s"} para hoy` : enRepaso() ? `Hoy estás al día${manana ? `; mañana te tocan ${manana}` : ""}` : "Aquí volverán las que falles, espaciadas en el tiempo";
   $("#ex-pool").textContent = m === "ia" ? "Usa tu cuenta de Claude; tarda 30–60 s en prepararlas." : `${fmt(unicas(pool()).length)} preguntas disponibles de ${fmt(unicas(EX).length)}`;
   $("#ex-start").textContent = m === "ia" ? "Generar 10 preguntas" : "Empezar examen"; }
 document.querySelectorAll('input[name="modo"], #ex-tema, #ex-nuevas').forEach(e => e.addEventListener("change", syncConfig));
@@ -474,7 +489,7 @@ function pintarJuego() { const J = JUEGO;
   $("#jg-racha").textContent = J.racha; $("#jg-mejor").textContent = Math.max(J.record, J.racha);
   $("#jg-meta").style.width = `${(J.racha % 10) * 10}%`; }   // la barra se llena hasta la siguiente decena
 // cada respuesta cuenta como en un examen: la fallada pasa a «Repasar mis fallos» y la acertada sale de ahí
-function anotarJuego(q, bien) { const s = HIST.stats[q.id] || {vistas: 0, aciertos: 0}; s.vistas++; if (bien) s.aciertos++; s.ultimo = bien ? "ok" : "ko";
+function anotarJuego(q, bien) { const s = HIST.stats[q.id] || {vistas: 0, aciertos: 0}; s.vistas++; if (bien) s.aciertos++; s.ultimo = bien ? "ok" : "ko"; programar(s, bien);
   HIST.stats[q.id] = s; saveHist(HIST); JUEGO.resp.push({q: q.id, v: bien ? "ok" : "ko"}); }
 // una sola oportunidad: si fallas se marca la correcta y se acaba la partida
 function responderJuego(b) { const J = JUEGO; if (!J || J.resuelta) return;
@@ -494,7 +509,7 @@ function guardarPartida(J) { if (!J.resp.length) return;
   const tipo = `${TIPO_JUEGO}: ${J.ambito}`, cuenta = rs => rs.filter(x => x.v === "ok").length;
   HIST.intentos.push({t: Date.now(), tipo, n: J.resp.length, ok: cuenta(J.resp), ko: J.resp.length - cuenta(J.resp), bl: 0, nota120: J.racha}); saveHist(HIST);
   const rs = J.resp.slice(-200);
-  GANCHOS.alCorregir?.({tipo, n: rs.length, ok: cuenta(rs), ko: rs.length - cuenta(rs), bl: 0, nota: J.racha, escala: 0, segundos: Math.round((Date.now() - J.inicio) / 1000),
+  GANCHOS.alCorregir?.({hoy: hoyISO(), tipo, n: rs.length, ok: cuenta(rs), ko: rs.length - cuenta(rs), bl: 0, nota: J.racha, escala: 0, segundos: Math.round((Date.now() - J.inicio) / 1000),
     tarea: null, por_bloque: {}, por_tema: {}, respuestas: rs, juego: true}); }
 function acabarJuego() { const J = JUEGO; if (!J) return; J.resuelta = true;
   const record = J.racha > J.record && J.racha > 0;
@@ -566,7 +581,7 @@ function drawProg() { const el = $("#prog-body"), it = examenes();
   let v = 0, a = 0; ids.forEach(id => { v += HIST.stats[id].vistas; a += HIST.stats[id].aciertos; });
   const ult = it.slice(-5), media = ult.reduce((x, y) => x + y.nota120, 0) / ult.length;
   const pr = prioridades(), max = Math.max(...pr.map(p => p.prio), .01), filas = progTodos ? pr : pr.slice(0, 8);
-  el.innerHTML = `<div class="pkpis"><div><b>${fmt(ids.length)} <span style="font-size:.9rem;color:var(--muted)">de ${fmt(total)}</span></b><span>preguntas distintas practicadas (${fmt(100 * ids.length / total)} %)</span></div>
+  el.innerHTML = `<div class="pkpis"><div><b>${fmt(repasoIds().length)}</b><span>para repasar hoy, de ${fmt(enRepaso())} en tu repaso</span></div><div><b>${fmt(ids.length)} <span style="font-size:.9rem;color:var(--muted)">de ${fmt(total)}</span></b><span>preguntas distintas practicadas (${fmt(100 * ids.length / total)} %)</span></div>
     <div><b>${fmt(v ? 100 * a / v : 0)} %</b><span>de aciertos en todas tus respuestas</span></div>
     <div><b>${fmt(it[it.length - 1].nota120, 1)}</b><span>nota del último intento, sobre ${ESC}</span></div>
     <div><b>${fmt(media, 1)}</b><span>media de los ${ult.length} últimos, sobre ${ESC}</span></div></div>` +
@@ -634,8 +649,8 @@ function elegir() { const m = modo();
     out = unicas([...out, ...shuffle(base.filter(q => !usados.has(q.id)))]).slice(0, C.simN);
     return {qs: shuffle(out), min: C.simMin, tipo: "Simulacro oficial"}; }
   const n = +$("#ex-n").value; const p = pool();
-  const tipo = m === "rapido" ? "Test rápido" : m === "fallos" ? "Repaso de fallos" : selTema.options[selTema.selectedIndex].text.split(" (")[0];
-  return {qs: unicas(shuffle(p)).slice(0, m === "fallos" ? 60 : n), min: null, tipo}; }
+  const tipo = m === "rapido" ? "Test rápido" : m === "fallos" ? "Repaso de fallos" : m === "repaso" ? "Repaso de hoy" : selTema.options[selTema.selectedIndex].text.split(" (")[0];
+  return {qs: unicas(shuffle(p)).slice(0, m === "fallos" ? 60 : m === "repaso" ? 40 : n), min: null, tipo}; }
 
 function render(qs, tiempoMin) {
   $("#ex-config").hidden = true; $("#ex-prog").hidden = true; $("#ex-res").hidden = true; $("#ex-run").hidden = false;
@@ -681,14 +696,14 @@ function corregir(porTiempo = false) {
   const resp = qs.map((q, k) => { const i = document.querySelector(`input[name="r${k}"]:checked`); const v = i ? +i.value : null;
     const b = bloqueDe(q.tema); porB[b] = porB[b] || {ok: 0, ko: 0, bl: 0, n: 0}; porB[b].n++;
     if (v === null) { bl++; porB[b].bl++; } else if (v === q.r) { ok++; porB[b].ok++; } else { ko++; porB[b].ko++; }
-    if (!q.ia) { const s = HIST.stats[q.id] || {vistas: 0, aciertos: 0}; s.vistas++; if (v === q.r) s.aciertos++; s.ultimo = v === null ? "bl" : v === q.r ? "ok" : "ko"; HIST.stats[q.id] = s; }
+    if (!q.ia) { const s = HIST.stats[q.id] || {vistas: 0, aciertos: 0}; s.vistas++; if (v === q.r) s.aciertos++; s.ultimo = v === null ? "bl" : v === q.r ? "ok" : "ko"; programar(s, v === q.r); HIST.stats[q.id] = s; }
     return v; });
   const neta = ok - ko / DIV, nota120 = ESC * neta / qs.length, seg = Math.round((Date.now() - CUR.inicio) / 1000);
   HIST.intentos.push({t: Date.now(), tipo: CUR.tipo, n: qs.length, ok, ko, bl, nota120}); saveHist(HIST);
   CUR.resp = resp; borrarCurso(); $("#ex-run").hidden = true; $("#ex-res").hidden = false;
   const porT = {}; qs.forEach((q, k) => { if (!TEMAS[q.tema]) return; const t = porT[q.tema] = porT[q.tema] || {n: 0, mal: 0}; t.n++; if (resp[k] !== q.r) t.mal++; });
   const malT = Object.entries(porT).filter(([, t]) => t.mal).sort((a, b) => b[1].mal - a[1].mal || b[1].n - a[1].n).slice(0, 6);
-  if (!qs[0].ia) GANCHOS.alCorregir?.({tipo: CUR.tipo, n: qs.length, ok, ko, bl, nota: Math.round(nota120 * 100) / 100, escala: ESC, segundos: seg, tarea: CUR.tarea || null,
+  if (!qs[0].ia) GANCHOS.alCorregir?.({hoy: hoyISO(), tipo: CUR.tipo, n: qs.length, ok, ko, bl, nota: Math.round(nota120 * 100) / 100, escala: ESC, segundos: seg, tarea: CUR.tarea || null,
     por_bloque: porB, por_tema: porT, respuestas: qs.map((q, k) => ({q: q.id, v: resp[k] === null ? "bl" : resp[k] === q.r ? "ok" : "ko"}))});
   const hi = Math.max(...CORTES.map(c => c[1])), lo = Math.min(...CORTES.map(c => c[1]));
   const corte = nota120 >= hi ? [C.veredictos[0], "var(--good)"] : nota120 >= lo ? [C.veredictos[1], "var(--s4)"] : [C.veredictos[2], "var(--bad)"];

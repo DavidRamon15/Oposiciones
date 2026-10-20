@@ -322,11 +322,11 @@
   async function cargarProgreso() {
     try {
       const [rs, its] = await Promise.all([
-        todas(() => sb.from("respuestas").select("pregunta, vistas, aciertos, ultimo").eq("usuario", PERFIL.id).eq("oposicion", op())),
+        todas(() => sb.from("respuestas").select("pregunta, vistas, aciertos, ultimo, caja, proxima").eq("usuario", PERFIL.id).eq("oposicion", op())),
         // los 500 más recientes (con el juego se acumulan muchos intentos), en orden de fecha
         sb.from("intentos").select("tipo, n, ok, ko, bl, nota, creado").eq("usuario", PERFIL.id).eq("oposicion", op()).order("creado", {ascending: false}).limit(500)]);
       if (its.error) throw its.error;
-      HIST = {stats: Object.fromEntries(rs.map(r => [r.pregunta, {vistas: r.vistas, aciertos: r.aciertos, ultimo: r.ultimo}])),
+      HIST = {stats: Object.fromEntries(rs.map(r => [r.pregunta, {vistas: r.vistas, aciertos: r.aciertos, ultimo: r.ultimo, ...(r.caja ? {caja: r.caja, prox: r.proxima} : {})}])),
         intentos: its.data.reverse().map(i => ({t: +new Date(i.creado), tipo: i.tipo, n: i.n, ok: i.ok, ko: i.ko, bl: i.bl, nota120: +i.nota}))};
       saveHist(HIST); drawHist(); syncConfig();
     } catch (e) { aviso("No se pudo cargar tu progreso: " + mensaje(e) + " Se muestra la última copia de este dispositivo.", "error"); HIST = loadHist(); drawHist(); }
