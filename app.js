@@ -416,13 +416,62 @@ function pool() { const m = modo(), sinRep = $("#ex-nuevas").checked; let p = EX
   if (m === "fallos") { const ids = new Set(fallosIds()); p = EX.filter(q => ids.has(q.id)); }
   if (sinRep && m !== "fallos") p = p.filter(q => !HIST.stats[q.id]);
   return p; }
-function syncConfig() { const m = modo();
-  $("#lb-n").hidden = m === "sim" || m === "ia"; $("#lb-tema").hidden = !(m === "tema" || m === "ia");
-  $("#ex-nuevas").parentElement.hidden = m === "fallos" || m === "ia";
+function syncConfig() { const m = modo(), jg = m === "juego";
+  $("#lb-n").hidden = m === "sim" || m === "ia" || jg; $("#lb-tema").hidden = !(m === "tema" || m === "ia");
+  $("#ex-nuevas").parentElement.hidden = m === "fallos" || m === "ia" || jg;
+  $("#ex-crono").parentElement.hidden = jg; $("#lb-jg").hidden = !jg;
   $("#fallos-n").textContent = `${fallosIds().length} preguntas que has fallado o dejado en blanco`;
-  $("#ex-pool").textContent = m === "ia" ? "Usa tu cuenta de Claude; tarda 30–60 s en prepararlas." : `${fmt(unicas(pool()).length)} preguntas disponibles de ${fmt(unicas(EX).length)}`;
-  $("#ex-start").textContent = m === "ia" ? "Generar 10 preguntas" : "Empezar examen"; }
-document.querySelectorAll('input[name="modo"], #ex-tema, #ex-nuevas').forEach(e => e.addEventListener("change", syncConfig));
+  $("#ex-pool").textContent = m === "ia" ? "Usa tu cuenta de Claude; tarda 30–60 s en prepararlas." : jg ? `${fmt(poolJuego().length)} preguntas para jugar`
+    : `${fmt(unicas(pool()).length)} preguntas disponibles de ${fmt(unicas(EX).length)}`;
+  $("#ex-start").textContent = m === "ia" ? "Generar 10 preguntas" : jg ? "Empezar a jugar" : "Empezar examen"; }
+document.querySelectorAll('input[name="modo"], #ex-tema, #ex-nuevas, #jg-tema').forEach(e => e.addEventListener("change", syncConfig));
+
+/* --- juego de la racha: una pregunta, 3 respuestas, solo se avanza al acertar --- */
+// fuera las que se refieren a otras opciones («todas las anteriores», «a y b»): con 3 de 4 respuestas, o barajadas, dejan de tener sentido
+const CRUZADA = /anteriores|ninguna de las|todas (las|ellas|son)|ambas|las dos|(^|\W)[a-d]\)\s*(y|e|o)\s*[a-d]\)|\b(letras?|opciones|respuestas|apartados) [a-d]\b|\b[a-d] y [a-d]\b/i;
+const JUGABLES = unicas(EX).filter(q => !q.o.some(o => CRUZADA.test(o)));
+$("#jg-tema").innerHTML = `<option value="">Todo el temario</option>` + BLQ.map(b => `<option value="B:${b}">Bloque: ${esc(b)}</option>`).join("") +
+  Object.entries(TEMAS).filter(([k]) => !k.startsWith("X")).map(([k, v]) => { const n = JUGABLES.filter(q => q.tema === k).length; return n >= 5 ? `<option value="T:${k}">${k}. ${esc(v)} (${n})</option>` : ""; }).join("");
+function poolJuego() { const v = $("#jg-tema").value;
+  return !v ? JUGABLES : v.startsWith("B:") ? JUGABLES.filter(q => bloqueDe(q.tema) === v.slice(2)) : JUGABLES.filter(q => q.tema === v.slice(2)); }
+const LSJ = () => LS + LS_SUF + "-racha";
+const mejorRacha = () => { try { return +localStorage.getItem(LSJ()) || 0; } catch (e) { return 0; } };
+let JUEGO = null;
+function empezarJuego() { const p = poolJuego(); if (!p.length) return;
+  JUEGO = {cola: shuffle(p), i: -1, racha: 0, mejor: mejorRacha(), primera: 0, hechas: 0};
+  $("#ex-config").hidden = true; $("#ex-prog").hidden = true; $("#ex-juego").hidden = false;
+  siguienteJuego(); $("#ex-juego").scrollIntoView({block: "start"}); }
+function siguienteJuego() { const J = JUEGO;
+  if (++J.i >= J.cola.length) { J.cola = shuffle(J.cola); J.i = 0; }   // se acabaron: se vuelven a barajar
+  const q = J.cola[J.i], falsas = shuffle(q.o.map((_, j) => j).filter(j => j !== q.r)).slice(0, 2);
+  J.q = q; J.ops = shuffle([q.r, ...falsas]); J.fallada = false;
+  $("#jg-tag").textContent = `${NOMBRE_OEP(String(q.oep))} · ${q.tema}. ${TEMAS[q.tema] || ""}`;
+  $("#jg-q").textContent = q.e;
+  $("#jg-ops").innerHTML = J.ops.map((j, n) => `<button class="jg-op" data-j="${j}"><span class="l">${n + 1}</span><span>${esc(q.o[j])}</span></button>`).join("");
+  $("#jg-msg").textContent = ""; $("#jg-msg").className = "jg-msg"; pintarJuego();
+  $("#jg-ops button").focus({preventScroll: true}); }
+function pintarJuego() { const J = JUEGO;
+  $("#jg-racha").textContent = J.racha; $("#jg-mejor").textContent = J.mejor; $("#jg-primera").textContent = `${J.primera} de ${J.hechas}`;
+  // la barra se llena hasta la siguiente decena de la racha
+  $("#jg-meta").style.width = `${(J.racha % 10) * 10}%`; }
+function responderJuego(b) { const J = JUEGO; if (!J || b.disabled || J.resuelta) return;
+  const j = +b.dataset.j;
+  if (j !== J.q.r) {   // fallo: la racha vuelve a cero y hay que seguir hasta dar con la buena
+    b.classList.add("ko"); b.disabled = true; J.fallada = true; J.racha = 0;
+    $("#jg-msg").textContent = "Esa no es. Prueba otra vez."; $("#jg-msg").className = "jg-msg ko"; pintarJuego(); return; }
+  J.resuelta = true; b.classList.add("ok"); $("#jg-ops").querySelectorAll("button").forEach(x => x.disabled = true);
+  J.hechas++;
+  if (!J.fallada) { J.primera++; J.racha++;
+    if (J.racha > J.mejor) { J.mejor = J.racha; try { localStorage.setItem(LSJ(), String(J.mejor)); } catch (e) { /* sin almacenamiento */ } }
+    const r = $("#jg-racha"); r.classList.remove("jg-racha-sube"); void r.offsetWidth; r.classList.add("jg-racha-sube"); }
+  $("#jg-msg").textContent = J.fallada ? "Ahora sí. Siguiente pregunta…" : J.racha % 10 === 0 ? `¡${J.racha} seguidas! Siguiente pregunta…` : "¡Correcto! Siguiente pregunta…";
+  $("#jg-msg").className = "jg-msg ok"; pintarJuego();
+  setTimeout(() => { if (JUEGO === J) { J.resuelta = false; siguienteJuego(); } }, J.fallada ? 1800 : 1100); }
+$("#jg-ops").addEventListener("click", e => { const b = e.target.closest(".jg-op"); if (b) responderJuego(b); });
+document.addEventListener("keydown", e => { if (!JUEGO || $("#ex-juego").hidden || !/^[1-3]$/.test(e.key) || e.target.matches?.("input, select, textarea")) return;
+  const b = $("#jg-ops").children[+e.key - 1]; if (b) responderJuego(b); });
+$("#jg-salir").onclick = () => { const J = JUEGO; JUEGO = null; $("#ex-juego").hidden = true; $("#ex-config").hidden = false; $("#ex-prog").hidden = false; syncConfig();
+  if (J && J.hechas) $("#ex-pool").textContent = `Partida terminada: ${J.hechas} preguntas, ${J.primera} a la primera. Tu mejor racha: ${J.mejor}.`; };
 
 /* --- tu progreso: acierto por tema y qué repasar primero --- */
 const peso = t => (tm[t] || {}).pct_ultimos || 0;            // % medio del tema en los últimos exámenes
@@ -552,6 +601,7 @@ function tick() { const el = $("#ex-timer"); if (!CUR) return;
 
 $("#ex-start").onclick = async () => {
   if (modo() === "ia") return generarIA();
+  if (modo() === "juego") return empezarJuego();
   const {qs, min, tipo} = elegir();
   if (!qs.length) { $("#ex-pool").textContent = "No hay preguntas con esos filtros. Quita «Evitar preguntas ya hechas» o elige otro tema."; return; }
   CUR = {qs, tipo, inicio: Date.now()}; render(qs, min ?? (qs.length * C.segPorPregunta / 60)); };

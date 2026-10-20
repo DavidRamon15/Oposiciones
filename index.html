@@ -299,6 +299,30 @@ svg text{font-family:var(--f-ui)}
 .mode:has(input:checked){border-color:var(--pen);background:var(--pen-tint)}
 .mode input{margin-top:5px;accent-color:var(--pen)}
 .mode span{display:grid;gap:2px}.mode small{color:var(--ink-2);font-size:.82rem;line-height:1.35}
+.mode.modo-juego{border-color:var(--red-2);background:var(--red-tint)}
+/* juego de la racha */
+.juego{display:grid;gap:14px;max-width:820px}
+.jg-marcador{display:flex;flex-wrap:wrap;gap:10px 26px;align-items:end}
+.jg-marcador div{display:grid;gap:2px}.jg-marcador span{font-size:.8rem;color:var(--ink-2)}
+.jg-marcador b{font-size:1.7rem;line-height:1;font-variant-numeric:tabular-nums}
+#jg-racha{color:var(--red)}
+#jg-salir{margin-left:auto}
+.jg-racha-sube{animation:jg-sube .45s ease-out}
+@keyframes jg-sube{0%{transform:scale(1)}40%{transform:scale(1.45)}100%{transform:scale(1)}}
+.jg-meta{height:8px;border-radius:4px;background:var(--rule);overflow:hidden}
+.jg-meta i{display:block;height:100%;width:0;background:var(--red);transition:width .3s}
+.jg-q{font-family:var(--f-text);font-weight:500;font-size:1.15rem;line-height:1.5}
+.jg-ops{display:grid;gap:10px}
+.jg-op{display:flex;gap:12px;align-items:flex-start;text-align:left;padding:14px 16px;font:400 1rem/1.45 var(--f-text);border:1.5px solid var(--rule);border-radius:12px;background:var(--sheet)}
+.jg-op:hover:not([disabled]){border-color:var(--pen);background:var(--pen-tint)}
+.jg-op .l{flex:none;display:grid;place-items:center;width:1.8rem;height:1.8rem;border-radius:50%;border:1.5px solid currentColor;font:600 .85rem var(--f-ui);color:var(--ink-2)}
+.jg-op.ok{border-color:var(--good);background:var(--good-tint)}.jg-op.ok .l{background:var(--good);border-color:var(--good);color:#fff}
+.jg-op.ko{border-color:var(--bad);background:var(--bad-tint);text-decoration:line-through;opacity:.75}.jg-op.ko .l{background:var(--bad);border-color:var(--bad);color:#fff}
+.jg-op[disabled]{cursor:default;color:var(--ink)}
+.jg-op.ko{animation:jg-no .35s}
+@keyframes jg-no{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.jg-msg{min-height:1.5em;font-weight:600}.jg-msg.ok{color:var(--good)}.jg-msg.ko{color:var(--bad)}
+@media (prefers-reduced-motion:reduce){.jg-op.ko,.jg-racha-sube{animation:none}}
 label.check{display:flex;flex-direction:row;align-items:center;gap:6px;font-size:.88rem;color:var(--ink-2)}
 label.check input{accent-color:var(--pen)}
 button.primary,a.boton.primary{background:var(--pen);border-color:var(--pen);color:#fff;font-weight:600}
@@ -363,7 +387,7 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
   .exbar .row button{font-size:.8rem;padding:6px 9px}#ex-timer{font-size:.95rem;margin-right:auto}}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 </style>
-<link rel="stylesheet" href="cuenta.css?v=e59b74be63">
+<link rel="stylesheet" href="cuenta.css?v=c4ec5d9423">
 </head>
 <body>
 
@@ -438,12 +462,14 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
       <label class="mode"><input type="radio" name="modo" value="sim" checked><span><b>Simulacro oficial</b><small id="sim-desc"></small></span></label>
       <label class="mode"><input type="radio" name="modo" value="rapido"><span><b>Test rápido</b><small>De 20 a 60 preguntas al azar</small></span></label>
       <label class="mode"><input type="radio" name="modo" value="tema"><span><b>Por bloque o tema</b><small>Céntrate en lo que más fallas</small></span></label>
+      <label class="mode modo-juego"><input type="radio" name="modo" value="juego"><span><b>Juego de la racha</b><small>Una pregunta y 3 respuestas: solo avanzas si aciertas</small></span></label>
       <label class="mode"><input type="radio" name="modo" value="fallos"><span><b>Repasar mis fallos</b><small id="fallos-n">Preguntas que has fallado antes</small></span></label>
       <label class="mode" id="mode-ia"><input type="radio" name="modo" value="ia"><span><b>Preguntas nuevas de Claude</b><small>Claude redacta 10 preguntas inéditas de un tema</small></span></label>
     </div>
     <div class="controls" style="margin-top:14px">
       <label for="ex-n" id="lb-n">Nº de preguntas<select id="ex-n"><option>20</option><option selected>40</option><option>60</option></select></label>
       <label for="ex-tema" id="lb-tema">Bloque o tema<select id="ex-tema"></select></label>
+      <label for="jg-tema" id="lb-jg" hidden>Preguntas de<select id="jg-tema"></select></label>
       <label for="ex-crono" class="check"><input type="checkbox" id="ex-crono" checked> Con cronómetro</label>
       <label for="ex-nuevas" class="check"><input type="checkbox" id="ex-nuevas"> Evitar preguntas ya hechas</label>
     </div>
@@ -457,6 +483,20 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
     <div class="controls" style="justify-content:space-between;align-items:baseline"><h3>Tu progreso</h3><span class="note">Se guarda solo en este navegador</span></div>
     <div id="prog-body"></div>
     <div id="ex-hist" style="margin-top:16px"></div>
+  </div>
+
+  <div class="panel juego" id="ex-juego" hidden>
+    <div class="jg-marcador" aria-live="polite">
+      <div><span>Racha</span><b id="jg-racha">0</b></div>
+      <div><span>Tu mejor racha</span><b id="jg-mejor">0</b></div>
+      <div><span>A la primera</span><b id="jg-primera">0 de 0</b></div>
+      <button id="jg-salir">Terminar</button>
+    </div>
+    <div class="jg-meta" aria-hidden="true"><i id="jg-meta"></i></div>
+    <p class="note" id="jg-tag"></p>
+    <h3 class="jg-q" id="jg-q"></h3>
+    <div class="jg-ops" id="jg-ops" role="group" aria-label="Respuestas"></div>
+    <p class="jg-msg" id="jg-msg" aria-live="assertive"></p>
   </div>
 
   <div id="ex-run" hidden>
@@ -601,10 +641,10 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
 </div>
 <div class="tip" id="tip" hidden></div>
 
-<script>window.VERSION = "e59b74be63";</script>
-<script src="vendor/supabase.js?v=e59b74be63"></script>
-<script src="config.js?v=e59b74be63"></script>
-<script src="cuenta.js?v=e59b74be63"></script>
-<script src="cargador.js?v=e59b74be63"></script>
+<script>window.VERSION = "c4ec5d9423";</script>
+<script src="vendor/supabase.js?v=c4ec5d9423"></script>
+<script src="config.js?v=c4ec5d9423"></script>
+<script src="cuenta.js?v=c4ec5d9423"></script>
+<script src="cargador.js?v=c4ec5d9423"></script>
 </body>
 </html>
