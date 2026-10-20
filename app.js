@@ -62,17 +62,22 @@ $("#nav-cambiar").onclick = e => { e.preventDefault(); location.hash = "inicio";
 
 /* ---------- menú superior ---------- */
 $("#nav-op").textContent = C.nombreCorto;
-const NAV = $("nav.toc"), bAn = $("#nav-analisis-b"), mAn = $("#nav-analisis"), bMov = $("#nav-movil");
-function grupoNav(abrir) { mAn.hidden = !abrir; bAn.setAttribute("aria-expanded", String(abrir)); }
+const NAV = $("nav.toc"), mAn = $("#nav-analisis"), bMov = $("#nav-movil");
+// desplegables del menú: «Análisis» y, con cuenta de administrador, «Gestión» (como mucho uno abierto)
+const menuDe = b => document.getElementById(b.getAttribute("aria-controls"));
+const grupoAbierto = () => [...NAV.querySelectorAll(".nav-abre")].find(b => b.getAttribute("aria-expanded") === "true");
+function grupoNav(cual, abrir) { NAV.querySelectorAll(".nav-abre").forEach(b => { const si = abrir && b === cual; menuDe(b).hidden = !si; b.setAttribute("aria-expanded", String(si)); }); }
 function hojaNav(abrir) { NAV.classList.toggle("abierto", abrir); bMov.setAttribute("aria-expanded", String(abrir)); }
-const cerrarNav = () => { grupoNav(false); hojaNav(false); };
-bAn.onclick = () => { grupoNav(mAn.hidden); if (!mAn.hidden) mAn.querySelector("a").focus(); };
+const cerrarNav = () => { grupoNav(null, false); hojaNav(false); };
+NAV.addEventListener("click", e => { const b = e.target.closest(".nav-abre"); if (!b) return;
+  const abrir = menuDe(b).hidden; grupoNav(b, abrir); if (abrir) menuDe(b).querySelector("a").focus(); });
 bMov.onclick = () => hojaNav(!NAV.classList.contains("abierto"));
 document.addEventListener("click", e => { if (!e.target.closest("nav.toc") || e.target.closest("nav.toc a")) cerrarNav(); });
-document.addEventListener("keydown", e => { if (e.key === "Escape" && (!mAn.hidden || NAV.classList.contains("abierto"))) { const vuelve = !mAn.hidden ? bAn : bMov; cerrarNav(); vuelve.focus(); } });
-mAn.addEventListener("keydown", e => {   // flechas dentro del desplegable
-  if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return; e.preventDefault();
-  const l = [...mAn.querySelectorAll("a")], i = l.indexOf(document.activeElement);
+document.addEventListener("keydown", e => { const g = grupoAbierto();
+  if (e.key === "Escape" && (g || NAV.classList.contains("abierto"))) { const vuelve = g || bMov; cerrarNav(); vuelve.focus(); } });
+NAV.addEventListener("keydown", e => {   // flechas dentro de un desplegable
+  const m = e.target.closest(".nav-menu"); if (!m || (e.key !== "ArrowDown" && e.key !== "ArrowUp")) return; e.preventDefault();
+  const l = [...m.querySelectorAll("a")], i = l.indexOf(document.activeElement);
   l[(i + (e.key === "ArrowDown" ? 1 : l.length - 1)) % l.length].focus(); });
 // una sección a la vista: la del enlace (#temas) o, si el enlace apunta a algo de dentro, la que lo contiene
 // (también las que añade la versión con cuentas al iniciar sesión)
@@ -88,7 +93,7 @@ function mostrarVista(h, subir = true) {
   const cambia = id !== VISTA; VISTA = id;
   VISTAS().forEach(v => v.classList.toggle("actual", v.id === id));
   document.querySelectorAll("nav.toc [data-sec], .an-tabs a").forEach(a => a.dataset.sec === id ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current"));
-  bAn.classList.toggle("actual", ANALISIS.includes(id));
+  NAV.querySelectorAll(".nav-abre").forEach(b => b.classList.toggle("actual", !!menuDe(b).querySelector(`[data-sec="${id}"]`)));
   const pest = document.querySelector(`#${id} > .an-tabs`), act = pest?.querySelector("[aria-current]");
   if (act) pest.scrollLeft = act.offsetLeft - pest.offsetLeft - 20;   // en el móvil la fila se desliza: que se vea la pestaña actual
   if (!subir) return;
@@ -98,12 +103,15 @@ function mostrarVista(h, subir = true) {
 // si las entradas no caben junto a la cuenta, el menú pasa a compacto (botón «Menú»)
 function ajustarNav() {
   if (NAV.hidden) return;
-  NAV.classList.remove("compacto");
-  const items = $("#nav-items"), cuenta = $("#nav-cuenta"), ultimo = items.lastElementChild.lastElementChild || items.lastElementChild;
-  const fin = Math.max(...[...items.children].map(e => e.getBoundingClientRect().right), ultimo.getBoundingClientRect().right);
-  const cabe = innerWidth > 760 && fin + 16 <= cuenta.getBoundingClientRect().left && items.scrollWidth <= items.clientWidth + 1;
-  NAV.classList.toggle("compacto", !cabe);
-  if (cabe) hojaNav(false);
+  NAV.classList.remove("compacto", "ancho");
+  const items = $("#nav-items"), cuenta = $("#nav-cuenta");
+  const cabe = () => { const ultimo = items.lastElementChild.lastElementChild || items.lastElementChild;
+    const fin = Math.max(...[...items.children].map(e => e.getBoundingClientRect().right), ultimo.getBoundingClientRect().right);
+    return innerWidth > 760 && fin + 16 <= cuenta.getBoundingClientRect().left && items.scrollWidth <= items.clientWidth + 1; };
+  let si = cabe();
+  if (!si) { NAV.classList.add("ancho"); si = cabe(); if (!si) NAV.classList.remove("ancho"); }
+  NAV.classList.toggle("compacto", !si);
+  if (si) hojaNav(false);
 }
 new ResizeObserver(ajustarNav).observe($("nav.toc .in"));
 new MutationObserver(ajustarNav).observe(NAV, {childList: true, subtree: true, characterData: true});

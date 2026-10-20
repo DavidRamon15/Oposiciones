@@ -391,12 +391,16 @@
     if (!ancla) return;   // en la portada no hay paneles
     const roles = q("#nav-roles");
     ancla.insertAdjacentHTML("afterend", `<section id="alumnos" class="cu-sec"><header><h2>Mis alumnos</h2><p class="ink2">Los opositores que se han unido con tu código. Ves su progreso en cualquier oposición y puedes ponerles tareas y dejarles notas.</p></header><div id="al-cuerpo"><p class="note">Cargando…</p></div></section>`);
-    roles?.insertAdjacentHTML("beforeend", `<a href="#alumnos" class="cu-navrol" data-sec="alumnos">Mis alumnos</a>`);
     if (PERFIL.rol === "admin") {
       q("#alumnos").insertAdjacentHTML("afterend", `<section id="administracion" class="cu-sec"><header><h2>Administración</h2><p class="ink2">Todas las cuentas de la web. Los cambios se guardan al momento.</p></header><div id="ad-cuerpo"><p class="note">Cargando…</p></div></section>`);
-      roles?.insertAdjacentHTML("beforeend", `<a href="#administracion" class="cu-navrol" data-sec="administracion">Administración</a>`);
+      // con dos entradas van en un desplegable, como «Análisis»: así el menú cabe en una línea en el ordenador
+      roles?.insertAdjacentHTML("beforeend", `<div class="nav-grupo cu-navrol"><button type="button" class="nav-abre" id="nav-gestion-b" aria-expanded="false" aria-controls="nav-gestion">Gestión
+          <svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1.5 3.5 5 7l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="nav-menu" id="nav-gestion" hidden><span class="nav-menu-t">Gestión</span>
+          <a href="#alumnos" data-sec="alumnos"><b>Mis alumnos</b><small>Su progreso, tareas y notas</small></a>
+          <a href="#administracion" data-sec="administracion"><b>Administración</b><small>Todas las cuentas de la web</small></a></div></div>`);
       pintarAdmin();
-    }
+    } else roles?.insertAdjacentHTML("beforeend", `<a href="#alumnos" class="cu-navrol" data-sec="alumnos">Mis alumnos</a>`);
     pintarAlumnos();
   }
 
