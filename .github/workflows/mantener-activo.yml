@@ -1,0 +1,17 @@
+# Generado por publicar_web.mjs: mantiene activo el proyecto de Supabase (el plan gratuito lo pausa tras 7 días sin uso).
+name: Mantener activa la base de datos
+on:
+  schedule:
+    - cron: "17 6 */2 * *"
+  workflow_dispatch:
+jobs:
+  consultar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Consulta a Supabase
+        env:
+          URL: https://abfsxdvuqxiuwkftqpqx.supabase.co
+          ANON: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiZnN4ZHZ1cXhpdXdrZnRxcHF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIzNzkzODMsImV4cCI6MjEwNzk1NTM4M30.NHfa1fG_oMAbP8aeJWhbpBsaWD5LyDpvGneuzkrs3IE
+        run: |
+          curl -fsS -o /dev/null -w "cuentas %{http_code}\n" "$URL/auth/v1/health" -H "apikey: $ANON"
+          curl -sS -o /dev/null -w "base de datos %{http_code}\n" "$URL/rest/v1/perfiles?select=id&limit=1" -H "apikey: $ANON" -H "Authorization: Bearer $ANON"

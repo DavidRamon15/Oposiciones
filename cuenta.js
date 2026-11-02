@@ -36,7 +36,7 @@
       [/rate limit|Too many|security purposes/i, "Demasiados intentos seguidos. Espera un minuto y vuelve a probar."],
       [/Unable to validate email|invalid format|email address.*invalid/i, "Ese email no es válido."],
       [/New password should be different/i, "La contraseña nueva tiene que ser distinta de la anterior."],
-      [/Failed to fetch|NetworkError|network/i, "No hay conexión con el servidor. Comprueba tu conexión."],
+      [/Failed to fetch|NetworkError|network|fetch failed/i, "No se puede conectar con el servidor de cuentas. Si tu conexión funciona, vuelve a probar en unos minutos; mientras, puedes seguir usando la web sin cuenta."],
       [/JWT expired|session/i, "Tu sesión ha caducado. Vuelve a entrar."],
     ].find(([rx]) => rx.test(m));
     return t ? t[1] : m || "Algo ha fallado. Vuelve a intentarlo.";
@@ -106,8 +106,8 @@
     document.body.insertAdjacentHTML("beforeend", `
       <div class="cu-aviso" id="cu-aviso" role="status" aria-live="polite" hidden></div>
       <dialog class="cu-dlg" id="cu-dlg" aria-labelledby="cu-dlg-t"><form method="dialog" class="cu-cerrar"><button aria-label="Cerrar">×</button></form><div id="cu-dlg-c"></div></dialog>`);
-    document.querySelectorAll("footer").forEach(f => f.insertAdjacentHTML("beforeend", `<span><a href="#privacidad" class="cu-priv-link">Privacidad y datos personales</a></span>`));
-    document.querySelectorAll(".cu-priv-link").forEach(a => a.addEventListener("click", e => { e.preventDefault(); verPrivacidad(); }));
+    // información legal en el pie de todas las páginas (legal.py genera estas páginas)
+    document.querySelectorAll("footer").forEach(f => f.insertAdjacentHTML("beforeend", `<span class="cu-legal"><a href="legal/aviso-legal.html">Aviso legal</a><a href="legal/privacidad.html">Privacidad</a><a href="legal/cookies.html">Cookies</a><a href="legal/condiciones.html">Condiciones de uso</a>${CFG.contacto ? `<a href="mailto:${h(CFG.contacto)}">Contacto</a>` : ""}</span>`));
     document.addEventListener("click", e => {
       const b = e.target.closest("[data-cu]"); if (!b) return;
       const a = b.dataset.cu;
@@ -175,7 +175,7 @@
       <label for="cu-email">Email<input id="cu-email" type="email" autocomplete="email" required></label>
       <label for="cu-pass">Contraseña<input id="cu-pass" type="password" autocomplete="new-password" required minlength="8" aria-describedby="cu-pass-a"><small id="cu-pass-a" class="note">Al menos 8 caracteres.</small></label>
       <label for="cu-op">Qué oposición preparas<select id="cu-op"><option value="">Aún no lo sé</option>${ops}</select></label>
-      <label class="check" for="cu-acepto"><input type="checkbox" id="cu-acepto" required> He leído <button type="button" class="cu-enlace" data-cu="privacidad">cómo se usan mis datos</button></label>
+      <label class="check" for="cu-acepto"><input type="checkbox" id="cu-acepto" required> <span>Tengo 14 años o más y acepto las <a href="legal/condiciones.html" target="_blank" rel="noopener">condiciones de uso</a> y la <a href="legal/privacidad.html" target="_blank" rel="noopener">política de privacidad</a></span></label>
       <p class="cu-estado" role="alert"></p>
       <div class="cu-acciones"><button class="primary" type="submit">Crear cuenta</button><button type="button" class="cu-enlace" data-cu="entrar">Ya tengo cuenta</button></div></form>`, c => {
       c.querySelector("#cu-f").onsubmit = async e => { e.preventDefault(); const f = e.target;
@@ -183,7 +183,7 @@
         if (!nombre) return estadoForm(f, "Escribe tu nombre.");
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return estadoForm(f, "Ese email no es válido.");
         if (password.length < 8) return estadoForm(f, "La contraseña debe tener al menos 8 caracteres.");
-        if (!f.querySelector("#cu-acepto").checked) return estadoForm(f, "Marca la casilla de privacidad para continuar.");
+        if (!f.querySelector("#cu-acepto").checked) return estadoForm(f, "Para crear la cuenta tienes que tener 14 años o más y aceptar las condiciones y la privacidad.");
         ocupado(f, true); estadoForm(f, "Creando la cuenta…", "");
         const {data, error} = await sb.auth.signUp({email, password, options: {data: {nombre, oposicion: f.querySelector("#cu-op").value || null}, emailRedirectTo: volver()}});
         ocupado(f, false);
@@ -281,9 +281,9 @@
       <p><b>Sin cuenta</b> no se guarda nada en ningún servidor: tu progreso se queda en este navegador.</p>
       <p><b>Con cuenta</b> se guardan tu email, tu nombre, la oposición que preparas y tus exámenes corregidos (nota, aciertos, fallos y qué preguntas has acertado). La contraseña se guarda cifrada y nadie, ni el administrador, puede verla.</p>
       <p><b>Quién ve tus datos:</b> tú; tu preparador, solo si te unes a él con su código; y el administrador de la web, para gestionar las cuentas. No se ceden a terceros ni se usan para publicidad.</p>
-      <p><b>Dónde están:</b> en Supabase, un servicio de bases de datos con servidores en la Unión Europea.</p>
+      <p><b>Dónde están:</b> en Supabase, un servicio de bases de datos${CFG.regionDatos ? ` (${h(CFG.regionDatos)})` : ""}.</p>
       <p><b>Tus derechos:</b> puedes corregir tu nombre y borrar tu progreso o tu cuenta entera en cualquier momento desde «Mi cuenta». Al borrar la cuenta se eliminan todos tus datos.</p>
-      ${CFG.contacto ? `<p><b>Contacto:</b> ${h(CFG.contacto)}</p>` : ""}</div><div class="cu-acciones"><button class="primary" onclick="this.closest('dialog').close()">Cerrar</button></div>`);
+      ${CFG.contacto ? `<p><b>Contacto:</b> ${h(CFG.contacto)}</p>` : ""}<p><a href="legal/privacidad.html" target="_blank" rel="noopener">Política de privacidad completa</a></p></div><div class="cu-acciones"><button class="primary" onclick="this.closest('dialog').close()">Cerrar</button></div>`);
   }
 
   // ---------- sesión y progreso en la nube ----------

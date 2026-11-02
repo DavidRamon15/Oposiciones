@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://davidramon15.github.io/Oposiciones/sitemap.xml

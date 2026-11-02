@@ -65,3 +65,4 @@
   .cu-sitio{padding-left:0}.cu-sitio [data-cu="registro"]{display:none}.cu-yo-t{display:none}.cu-yo{padding:3px!important}
   .cu-dlg{padding:20px 16px 16px}.cu-temas li{grid-template-columns:minmax(0,1fr) 60px 4.6rem}
 }
+.cu-legal{display:flex;flex-wrap:wrap;gap:4px 16px}

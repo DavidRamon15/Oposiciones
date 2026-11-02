@@ -1,5 +1,201 @@
 // Generado por construir.py a partir de plantilla.html: no editar aquí.
 const OPS = window.OPS;
+/* Psicotécnicos de práctica para Tropa y Marinería: los 7 factores de la prueba de aptitudes (verbal, numérico,
+   espacial, mecánico, perceptivo, memoria y razonamiento abstracto). Las preguntas no se copian de ningún sitio: se
+   generan con reglas, así que la solución es segura por construcción. Cada una sale siempre igual de su identificador
+   («T-NUM-0042»), y así el progreso, los fallos, el repaso y el juego funcionan como con las preguntas de examen.
+   construir.py inserta este archivo en la plantilla; expone PSICO.banco(n) y PSICO.FACTORES. */
+const PSICO = (() => {
+  const FACTORES = {NUM: "Numérico", VER: "Verbal", ESP: "Espacial", MEC: "Mecánico", PER: "Perceptivo", MEM: "Memoria", ABS: "Razonamiento abstracto"};
+  // azar reproducible: la misma semilla da siempre la misma pregunta
+  const semilla = s => { let h = 1779033703 ^ s.length; for (let i = 0; i < s.length; i++) { h = Math.imul(h ^ s.charCodeAt(i), 3432918353); h = h << 13 | h >>> 19; } return h >>> 0; };
+  function azar(id) { let a = semilla(id);
+    const r = () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+    const ri = (x, y) => x + Math.floor(r() * (y - x + 1)), pick = l => l[Math.floor(r() * l.length)];
+    const mezcla = l => { l = [...l]; for (let i = l.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [l[i], l[j]] = [l[j], l[i]]; } return l; };
+    return {r, ri, pick, mezcla}; }
+  // la correcta y tres distintas, en orden al azar
+  function opciones(R, buena, malas) { const vistas = new Set([String(buena)]), o = [buena];
+    for (const m of malas) { if (o.length === 4) break;
+      if (typeof buena === "number" && buena > 0 && !(m > 0)) continue;   // un negativo entre positivos delataría la respuesta
+      if (!vistas.has(String(m))) { vistas.add(String(m)); o.push(m); } }
+    if (o.length < 4) throw new Error("faltan distractores");
+    const l = R.mezcla(o); return {o: l.map(String), r: l.indexOf(buena)}; }
+  const fmt = n => Number(n).toLocaleString("es-ES");
+
+  /* ---------- numérico ---------- */
+  function numerico(R) { const t = R.ri(0, 7);
+    if (t <= 3) {   // series
+      let s, sig, regla;
+      if (t === 0) { const a = R.ri(2, 40), d = R.pick([3, 4, 5, 6, 7, 8, 9, 11, 12, 15]) * R.pick([1, 1, -1]); s = [0, 1, 2, 3, 4].map(i => a + i * d + (d < 0 ? 80 : 0)); sig = s[4] + d; regla = `cada número ${d > 0 ? "suma" : "resta"} ${Math.abs(d)}`; }
+      else if (t === 1) { const a = R.ri(1, 6), k = R.pick([2, 3]); s = [0, 1, 2, 3].map(i => a * k ** i); sig = s[3] * k; regla = `cada número se multiplica por ${k}`; }
+      else if (t === 2) { const a = R.ri(1, 20), d0 = R.ri(1, 4); s = [a]; for (let i = 0; i < 4; i++) s.push(s[i] + d0 + i); sig = s[4] + d0 + 4; regla = `las diferencias crecen de uno en uno (+${d0}, +${d0 + 1}, +${d0 + 2}…)`; }
+      else { const a = R.ri(1, 15), b = R.ri(20, 60), da = R.pick([2, 3, 4, 5]), db = R.pick([-2, -3, 5, 6]); s = [a, b, a + da, b + db, a + 2 * da, b + 2 * db]; sig = a + 3 * da; regla = `son dos series intercaladas: una suma ${da} y la otra ${db > 0 ? "suma " + db : "resta " + -db}`; }
+      const d = Math.abs(sig - s[s.length - 1]) || 2;
+      return {e: `¿Qué número continúa la serie? ${s.join(", ")}, …`, ...opciones(R, sig, R.mezcla([sig + 1, sig - 1, sig + d, sig - 2, sig + 2, sig * 2 - s[s.length - 1]])), exp: `${regla[0].toUpperCase()}${regla.slice(1)}: el siguiente es ${sig}.`}; }
+    if (t === 4) { const p = R.pick([5, 10, 15, 20, 25, 30, 40, 75]), base = R.pick([40, 60, 80, 120, 160, 200, 240, 300, 360, 400, 480]); const v = base * p / 100;
+      if (!Number.isInteger(v)) return numerico(R);
+      return {e: `¿Cuánto es el ${p} % de ${base}?`, ...opciones(R, v, R.mezcla([v + 5, v - 5, v * 2, v + 10, base - v, v / 2].filter(Number.isInteger))), exp: `${base} × ${p} / 100 = ${v}.`}; }
+    if (t === 5) { const c = R.ri(2, 6), u = R.ri(2, 9), n = R.ri(3, 12); if (n === c) return numerico(R);
+      const total = c * u, v = n * u, cosa = R.pick([["cajas", "cuestan", "€"], ["paquetes", "pesan", "kg"], ["botellas", "contienen", "litros"]]);
+      return {e: `Si ${c} ${cosa[0]} ${cosa[1]} ${total} ${cosa[2]}, ¿cuánto ${cosa[1]} ${n} ${cosa[0]}?`, ...opciones(R, v, R.mezcla([v + u, v - u, total + n, v + 1, v * 2])), exp: `Cada una: ${total} / ${c} = ${u}; ${n} × ${u} = ${v} ${cosa[2]}.`}; }
+    if (t === 6) { const a = R.ri(12, 89), b = R.ri(11, 69), c = R.ri(5, 39), v = a + b - c;
+      return {e: `Calcula de cabeza: ${a} + ${b} − ${c}`, ...opciones(R, v, R.mezcla([v + 10, v - 10, v + 1, v - 1, v + 2])), exp: `${a} + ${b} = ${a + b}; ${a + b} − ${c} = ${v}.`}; }
+    const km = R.pick([30, 40, 45, 60, 75, 90]), min = R.pick([15, 20, 30, 45, 60, 90]), h = R.pick([2, 3, 4]); const v = km * 60 * h / min;
+    if (!Number.isInteger(v)) return numerico(R);
+    return {e: `Un vehículo recorre ${km} km en ${min} minutos. A la misma velocidad, ¿cuántos kilómetros recorre en ${h} horas?`, ...opciones(R, v, R.mezcla([v + km, v - km, km * h, v / 2, v * 2].filter(Number.isInteger))),
+      exp: `En una hora recorre ${km} × 60 / ${min} = ${fmt(km * 60 / min)} km; en ${h} horas, ${fmt(v)} km.`}; }
+
+  /* ---------- verbal ---------- */
+  // grupos de palabras con el mismo significado: las opciones falsas salen siempre de otros grupos
+  const SINONIMOS = [["rápido", "veloz", "raudo"], ["comenzar", "iniciar", "empezar"], ["hermoso", "bello"], ["enojo", "ira", "enfado"], ["valiente", "audaz", "osado"],
+    ["terminar", "concluir", "acabar", "finalizar"], ["ayudar", "auxiliar", "socorrer"], ["antiguo", "vetusto"], ["alegre", "contento"], ["astuto", "sagaz"], ["débil", "endeble"],
+    ["escaso", "exiguo"], ["honrado", "íntegro"], ["terco", "obstinado", "testarudo"], ["ocultar", "esconder"], ["prudente", "sensato"], ["quieto", "inmóvil"], ["rehusar", "rechazar"],
+    ["tranquilo", "sosegado", "sereno"], ["tenaz", "perseverante"], ["útil", "provechoso"], ["extenso", "vasto", "amplio"], ["tosco", "rudo"], ["miedo", "temor", "pavor"],
+    ["pelea", "riña", "disputa"], ["esfuerzo", "empeño"], ["orden", "mandato"], ["error", "fallo", "equivocación"], ["vigilar", "custodiar"], ["obedecer", "acatar"],
+    ["peligro", "riesgo"], ["lento", "pausado"], ["cansado", "fatigado", "agotado"], ["regresar", "volver"], ["permiso", "autorización"], ["enorme", "colosal", "gigantesco"],
+    ["diminuto", "minúsculo"], ["rival", "adversario"], ["meta", "objetivo", "fin"], ["aviso", "advertencia"], ["duda", "incertidumbre"]];
+  const ANTONIMOS = [["generoso", "tacaño"], ["abundante", "escaso"], ["valiente", "cobarde"], ["ascender", "descender"], ["amigo", "enemigo"], ["ganar", "perder"], ["claro", "oscuro"],
+    ["construir", "destruir"], ["aprobar", "suspender"], ["fácil", "difícil"], ["ruidoso", "silencioso"], ["permitir", "prohibir"], ["orden", "caos"], ["alegría", "tristeza"],
+    ["entrada", "salida"], ["ofensivo", "defensivo"], ["avanzar", "retroceder"], ["mínimo", "máximo"], ["superior", "inferior"], ["antiguo", "moderno"], ["obediente", "rebelde"],
+    ["paz", "guerra"], ["victoria", "derrota"], ["recordar", "olvidar"], ["lleno", "vacío"], ["temprano", "tarde"], ["unir", "separar"], ["fuerte", "débil"]];
+  const ANALOGIAS = [["cría", [["vaca", "ternero"], ["caballo", "potro"], ["oveja", "cordero"], ["cabra", "cabrito"], ["cerdo", "lechón"], ["gallina", "pollito"]]],
+    ["herramienta", [["carpintero", "serrucho"], ["pintor", "pincel"], ["cirujano", "bisturí"], ["pescador", "caña"], ["jardinero", "rastrillo"], ["albañil", "paleta"]]],
+    ["capital", [["Francia", "París"], ["Italia", "Roma"], ["Portugal", "Lisboa"], ["Alemania", "Berlín"], ["Grecia", "Atenas"], ["Austria", "Viena"], ["Noruega", "Oslo"], ["Irlanda", "Dublín"]]],
+    ["lugar de trabajo", [["médico", "hospital"], ["profesor", "colegio"], ["juez", "juzgado"], ["cocinero", "cocina"], ["marinero", "barco"], ["piloto", "avión"], ["minero", "mina"]]]];
+  const GRUPOS = {frutas: ["manzana", "pera", "ciruela", "melocotón", "naranja", "uva"], herramientas: ["martillo", "destornillador", "alicates", "llave inglesa", "sierra"],
+    colores: ["azul", "verde", "amarillo", "violeta", "granate"], instrumentos: ["guitarra", "violín", "trompeta", "tambor", "flauta"],
+    prendas: ["camisa", "pantalón", "chaqueta", "jersey", "abrigo"], planetas: ["Marte", "Venus", "Júpiter", "Saturno", "Mercurio"], peces: ["sardina", "merluza", "atún", "trucha", "lenguado"]};
+  function verbal(R) { const t = R.ri(0, 3);
+    if (t === 0 || t === 1) { const lista = t === 0 ? SINONIMOS : ANTONIMOS, g = R.pick(lista), [a, b] = t === 0 ? R.mezcla(g) : (R.r() < .5 ? g : [g[1], g[0]]);
+      const otras = R.mezcla(lista.filter(p => p !== g).flat().filter(x => !g.includes(x)));
+      return {e: `¿Qué palabra significa ${t === 0 ? "lo mismo" : "lo contrario"} que «${a}»?`, ...opciones(R, b, otras), exp: `«${b}» es ${t === 0 ? "sinónimo" : "antónimo"} de «${a}».`}; }
+    if (t === 2) { const [rel, pares] = R.pick(ANALOGIAS), [p1, p2] = R.mezcla(pares);
+      return {e: `«${p1[0]}» es a «${p1[1]}» como «${p2[0]}» es a…`, ...opciones(R, p2[1], R.mezcla(pares.filter(p => p !== p2).map(p => p[1]).filter(x => x !== p1[1]))),
+        exp: `La relación es de ${rel}: ${p1[0]} → ${p1[1]}, ${p2[0]} → ${p2[1]}.`}; }
+    const nombres = Object.keys(GRUPOS), g = R.pick(nombres), otro = R.pick(nombres.filter(x => x !== g)), tres = R.mezcla(GRUPOS[g]).slice(0, 3), intrusa = R.pick(GRUPOS[otro]);
+    const l = R.mezcla([...tres, intrusa]);
+    return {e: "¿Qué palabra no pertenece al grupo?", o: l, r: l.indexOf(intrusa), exp: `Las demás son ${g}; «${intrusa}» no.`}; }
+
+  /* ---------- dibujos ---------- */
+  const SVG = (w, h, c, etiqueta) => `<svg class="ps-fig" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" role="img" aria-label="${etiqueta}">${c}</svg>`;
+  const TINTA = "#1c2541", SUAVE = "#c9d1e0";
+
+  /* ---------- espacial: la misma figura girada, no reflejada ---------- */
+  const giro = c => c.map(([x, y]) => [y, -x]), espejo = c => c.map(([x, y]) => [-x, y]);
+  const norma = c => { const mx = Math.min(...c.map(p => p[0])), my = Math.min(...c.map(p => p[1])); return c.map(([x, y]) => [x - mx, y - my]).sort((a, b) => a[0] - b[0] || a[1] - b[1]); };
+  const clave = c => JSON.stringify(norma(c)), giros = c => { const l = [c]; for (let i = 0; i < 3; i++) l.push(giro(l[i])); return l; };
+  function pieza(R) {   // 5 o 6 cuadrados unidos y quirales (su reflejo no se obtiene girándola)
+    for (;;) { const c = [[0, 0]], n = R.ri(5, 6);
+      while (c.length < n) { const [x, y] = R.pick(c), [dx, dy] = R.pick([[1, 0], [-1, 0], [0, 1], [0, -1]]); if (!c.some(p => p[0] === x + dx && p[1] === y + dy)) c.push([x + dx, y + dy]); }
+      const g = new Set(giros(c).map(clave)); if (!giros(espejo(c)).some(m => g.has(clave(m)))) return c; } }
+  function dibujaPieza(c, marca) { const n = norma(c), L = 18, w = (Math.max(...n.map(p => p[0])) + 1) * L, h = (Math.max(...n.map(p => p[1])) + 1) * L, ox = (96 - w) / 2, oy = (96 - h) / 2;
+    return SVG(96, 96, n.map(([x, y], i) => `<rect x="${ox + x * L}" y="${oy + y * L}" width="${L}" height="${L}" fill="${i === marca ? "#e0573b" : "#3b6fd8"}" stroke="#fff" stroke-width="2"/>`).join(""), "figura"); }
+  function espacial(R) { const c = pieza(R), marca = 0;   // un cuadrado marcado ayuda a seguir el giro
+    const conMarca = f => f.map((p, i) => ({p, i})), gira = (l, k) => { let x = l; for (let i = 0; i < k; i++) x = x.map(({p, i}) => ({p: [p[1], -p[0]], i})); return x; };
+    const refl = conMarca(c).map(({p, i}) => ({p: [-p[0], p[1]], i})), dib = l => { const n = norma(l.map(x => x.p)), m = l.find(x => x.i === marca).p, mn = [Math.min(...l.map(x => x.p[0])), Math.min(...l.map(x => x.p[1]))];
+      const idx = n.findIndex(q => q[0] === m[0] - mn[0] && q[1] === m[1] - mn[1]); return dibujaPieza(l.map(x => x.p), idx); };
+    const k = R.ri(1, 3), buena = gira(conMarca(c), k), malas = R.mezcla([0, 1, 2, 3]).map(j => gira(refl, j));
+    const fig = [buena, ...malas.slice(0, 3)], orden = R.mezcla([0, 1, 2, 3]);
+    return {e: "¿Cuál de las figuras es el modelo girado, sin darle la vuelta?", svg: dib(conMarca(c)), osvg: orden.map(i => dib(fig[i])), o: orden.map(i => `Figura ${"ABCD"[orden.indexOf(i)]}`), r: orden.indexOf(0),
+      exp: `La correcta es el modelo girado ${k * 90}°. Las demás son su reflejo (como en un espejo): ningún giro las convierte en el modelo.`}; }
+
+  /* ---------- mecánico ---------- */
+  function rueda(cx, cy, r, dientes, flecha) { let d = ""; for (let i = 0; i < dientes; i++) { const a = i / dientes * 2 * Math.PI; d += `<line x1="${cx + r * Math.cos(a)}" y1="${cy + r * Math.sin(a)}" x2="${cx + (r + 6) * Math.cos(a)}" y2="${cy + (r + 6) * Math.sin(a)}" stroke="${TINTA}" stroke-width="4"/>`; }
+    return `${d}<circle cx="${cx}" cy="${cy}" r="${r}" fill="#eef2f8" stroke="${TINTA}" stroke-width="2.5"/><circle cx="${cx}" cy="${cy}" r="4" fill="${TINTA}"/>${flecha || ""}`; }
+  const flechaHoraria = (cx, cy, r) => `<path d="M${cx - r * .6} ${cy - r * .35} A${r * .7} ${r * .7} 0 0 1 ${cx + r * .6} ${cy - r * .35}" fill="none" stroke="#e0573b" stroke-width="3"/><path d="M${cx + r * .6} ${cy - r * .35} l-9 -3 l6 9 z" fill="#e0573b"/>`;
+  function mecanico(R) { const t = R.ri(0, 3);
+    if (t === 0) { const n = R.ri(3, 6), r = 26, paso = 2 * r + 8, w = n * paso + 20;
+      const c = Array.from({length: n}, (_, i) => rueda(20 + r + i * paso, 50, r, 12, i === 0 ? flechaHoraria(20 + r, 50, r) : "") + `<text x="${20 + r + i * paso}" y="96" text-anchor="middle" font-size="13" fill="${TINTA}">${i + 1}</text>`).join("");
+      const horario = n % 2 === 1, l = R.mezcla(["En sentido horario", "En sentido antihorario", "No gira: los engranajes se bloquean", "Alterna de sentido"]);
+      return {e: `La rueda 1 gira en sentido horario. ¿En qué sentido gira la rueda ${n}?`, svg: SVG(w, 104, c, `${n} engranajes en fila`), o: l, r: l.indexOf(horario ? "En sentido horario" : "En sentido antihorario"),
+        exp: `Cada engranaje gira al revés que el anterior: las ruedas impares van como la 1 y las pares al contrario. La ${n} es ${horario ? "impar" : "par"}.`}; }
+    if (t === 1) { const za = R.pick([12, 15, 20, 24, 30]), zb = R.pick([10, 20, 30, 36, 40, 60]); const va = R.pick([2, 3, 4, 5, 6, 10]), vb = va * za / zb;
+      if (!Number.isInteger(vb) || za === zb) return mecanico(R);
+      return {e: `Un engranaje A de ${za} dientes mueve a otro B de ${zb} dientes. Si A da ${va} vueltas, ¿cuántas da B?`, ...opciones(R, vb, [...R.mezcla([va * zb / za, va, vb + 1, vb * 2, Math.max(1, vb - 1)].filter(x => Number.isInteger(x) && x > 0)), vb + 2, vb + 3, vb + 4]),
+        exp: `Pasan los mismos dientes por ambos: ${va} × ${za} = ${va * za} dientes, que en B son ${va * za} / ${zb} = ${vb} vueltas.`}; }
+    if (t === 2) { const d1 = R.ri(1, 4), d2 = R.ri(1, 5), p1 = R.pick([10, 20, 30, 40, 60]); const p2 = p1 * d1 / d2;
+      if (!Number.isInteger(p2) || d1 === d2) return mecanico(R);
+      const x0 = 30, L = 300, f = x0 + L / 2, u = (L / 2) / 5, xa = f - d1 * u, xb = f + d2 * u;
+      const c = `<line x1="${x0}" y1="60" x2="${x0 + L}" y2="60" stroke="${TINTA}" stroke-width="5"/><path d="M${f} 62 l-14 26 h28 z" fill="${SUAVE}" stroke="${TINTA}"/>`
+        + `<rect x="${xa - 18}" y="24" width="36" height="34" fill="#3b6fd8"/><text x="${xa}" y="46" text-anchor="middle" font-size="13" fill="#fff">${p1} kg</text>`
+        + `<rect x="${xb - 18}" y="24" width="36" height="34" fill="#e0573b"/><text x="${xb}" y="46" text-anchor="middle" font-size="15" fill="#fff">?</text>`
+        + `<text x="${(xa + f) / 2}" y="104" text-anchor="middle" font-size="13" fill="${TINTA}">${d1} m</text><text x="${(xb + f) / 2}" y="104" text-anchor="middle" font-size="13" fill="${TINTA}">${d2} m</text>`;
+      return {e: `La barra está en equilibrio. ¿Cuánto pesa la caja de la derecha?`, svg: SVG(360, 112, c, "palanca con dos pesos"), ...opciones(R, p2, R.mezcla([p1, p1 * d2 / d1, p2 + 10, p2 * 2, p2 + 5].filter(x => Number.isInteger(x) && x > 0))),
+        exp: `En equilibrio, peso × distancia es igual a cada lado: ${p1} × ${d1} = ? × ${d2}, así que ? = ${p2} kg.`}; }
+    const cruzada = R.r() < .5, c = rueda(60, 55, 32, 0, flechaHoraria(60, 55, 32)) + rueda(220, 55, 32, 0)
+      + (cruzada ? `<line x1="60" y1="23" x2="220" y2="87" stroke="${TINTA}" stroke-width="3"/><line x1="60" y1="87" x2="220" y2="23" stroke="${TINTA}" stroke-width="3"/>`
+        : `<line x1="60" y1="23" x2="220" y2="23" stroke="${TINTA}" stroke-width="3"/><line x1="60" y1="87" x2="220" y2="87" stroke="${TINTA}" stroke-width="3"/>`);
+    const l = R.mezcla(["En sentido horario", "En sentido antihorario", "No gira", "Depende de la velocidad"]);
+    return {e: `La polea de la izquierda gira en sentido horario. ¿Cómo gira la de la derecha?`, svg: SVG(280, 110, c, cruzada ? "dos poleas con correa cruzada" : "dos poleas con correa recta"), o: l, r: l.indexOf(cruzada ? "En sentido antihorario" : "En sentido horario"),
+      exp: cruzada ? "Con la correa cruzada, la segunda polea gira al revés." : "Con la correa recta (sin cruzar), las dos poleas giran en el mismo sentido."}; }
+
+  /* ---------- perceptivo ---------- */
+  const PARECIDOS = {O: "0", 0: "O", I: "1", 1: "I", B: "8", 8: "B", S: "5", 5: "S", Z: "2", 2: "Z", Q: "O", G: "6", 6: "G", E: "F", F: "E", M: "N", N: "M"};
+  function perceptivo(R) { const t = R.ri(0, 2), ABC = "ABCDEFGHJKLMNPQRSTUVWXYZ0123456789";
+    const codigo = () => Array.from({length: 8}, (_, i) => i === 3 ? "-" : R.pick([...ABC])).join("");
+    const tocar = s => { for (;;) { const i = R.pick([0, 1, 2, 4, 5, 6, 7]), c = s[i], n = PARECIDOS[c] || R.pick([...ABC]); if (n !== c) return s.slice(0, i) + n + s.slice(i + 1); } };
+    if (t === 0) { const m = codigo(), malas = new Set(); while (malas.size < 3) malas.add(tocar(m));
+      return {e: `¿Cuál es exactamente igual que el código ${m}?`, ...opciones(R, m, [...malas]), exp: `Solo «${m}» coincide carácter a carácter; las demás cambian uno.`, mono: true}; }
+    if (t === 1) { const m = codigo(), distinta = tocar(m), l = R.mezcla([m, m, m, distinta]);
+      return {e: "¿Cuál de estos códigos es distinto de los demás?", o: l.map((x, i) => x + " ".repeat(i)), r: l.indexOf(distinta), exp: `«${distinta}» cambia un carácter respecto a «${m}».`, mono: true}; }
+    const letras = R.pick([["b", "d", "p", "q"], ["m", "n", "u", "w"], ["6", "9", "8", "0"], ["E", "F", "L", "T"]]), obj = letras[0];
+    const tira = Array.from({length: 48}, () => R.pick(letras)), n = tira.filter(x => x === obj).length;
+    return {e: `¿Cuántas veces aparece «${obj}» en esta tira? ${tira.join(" ")}`, ...opciones(R, n, R.mezcla([n + 1, n - 1, n + 2, n - 2])), exp: `«${obj}» aparece ${n} veces.`, mono: true}; }
+
+  /* ---------- memoria: una ficha que se ve unos segundos ---------- */
+  const NOMBRES = ["Laura", "Pedro", "Marta", "Javier", "Lucía", "Andrés", "Sara", "Diego", "Elena", "Rubén", "Nerea", "Óscar"];
+  const CIUDADES = ["Cádiz", "Burgos", "Lugo", "Toledo", "Huesca", "Cáceres", "Murcia", "Gijón", "Teruel", "Ceuta"];
+  const PUESTOS = ["conductor", "radio", "cocina", "almacén", "enfermería", "guardia", "mecánico", "transmisiones"];
+  function memoria(R) { const t = R.ri(0, 1);
+    if (t === 0) { const filas = R.mezcla(NOMBRES).slice(0, 4).map((n, i) => ({n, c: R.mezcla(CIUDADES)[i], p: R.mezcla(PUESTOS)[i], num: R.ri(10, 99)}));
+      // ciudades, puestos y números distintos entre filas: así cada pregunta tiene una sola respuesta
+      const ciu = R.mezcla(CIUDADES).slice(0, 4), pue = R.mezcla(PUESTOS).slice(0, 4), nums = R.mezcla(Array.from({length: 90}, (_, i) => i + 10)).slice(0, 4);
+      filas.forEach((f, i) => { f.c = ciu[i]; f.p = pue[i]; f.num = nums[i]; });
+      const f = R.pick(filas), q = R.ri(0, 2), campo = ["c", "p", "num"][q], fuera = {c: CIUDADES.filter(x => !ciu.includes(x)), p: PUESTOS.filter(x => !pue.includes(x)), num: [nums[0] + 1, nums[1] + 2]}[campo];
+      const ficha = `<table class="ps-ficha"><thead><tr><th>Nombre</th><th>Destino</th><th>Puesto</th><th>Número</th></tr></thead><tbody>${filas.map(x => `<tr><td>${x.n}</td><td>${x.c}</td><td>${x.p}</td><td>${x.num}</td></tr>`).join("")}</tbody></table>`;
+      const preg = [`¿Cuál era el destino de ${f.n}?`, `¿Qué puesto tenía ${f.n}?`, `¿Qué número tenía ${f.n}?`][q];
+      return {e: preg, mem: {html: ficha, seg: 12}, ...opciones(R, f[campo], R.mezcla([...filas.filter(x => x !== f).map(x => x[campo]), ...fuera])), exp: `En la ficha, ${f.n}: ${f.c}, ${f.p}, número ${f.num}.`}; }
+    const s = Array.from({length: 7}, () => R.ri(1, 9)), pos = R.ri(1, 7), v = s[pos - 1];
+    return {e: `¿Qué número ocupaba el lugar ${pos} de la serie?`, mem: {html: `<p class="ps-serie">${s.join("  ")}</p>`, seg: 8}, ...opciones(R, v, R.mezcla([1, 2, 3, 4, 5, 6, 7, 8, 9].filter(x => x !== v))),
+      exp: `La serie era ${s.join(", ")}; en el lugar ${pos} estaba el ${v}.`}; }
+
+  /* ---------- razonamiento abstracto: series de figuras ---------- */
+  function figura(f) { const cx = 40, cy = 40; let forma;
+    const relleno = f.lleno ? TINTA : "#fff";
+    if (f.forma === 0) forma = `<circle cx="${cx}" cy="${cy}" r="22" fill="${relleno}" stroke="${TINTA}" stroke-width="3"/>`;
+    else if (f.forma === 1) forma = `<rect x="${cx - 21}" y="${cy - 21}" width="42" height="42" fill="${relleno}" stroke="${TINTA}" stroke-width="3"/>`;
+    else forma = `<path d="M${cx} ${cy - 25} L${cx + 24} ${cy + 18} L${cx - 24} ${cy + 18} Z" fill="${relleno}" stroke="${TINTA}" stroke-width="3"/>`;
+    const a = f.ang * Math.PI / 180, aguja = `<line x1="${cx}" y1="${cy}" x2="${cx + 30 * Math.sin(a)}" y2="${cy - 30 * Math.cos(a)}" stroke="#e0573b" stroke-width="4" stroke-linecap="round"/>`;
+    const puntos = Array.from({length: f.puntos}, (_, i) => `<circle cx="${40 - (f.puntos - 1) * 6 + i * 12}" cy="74" r="3.5" fill="#3b6fd8"/>`).join("");
+    return `${forma}${aguja}${puntos}`; }
+  const caja = (f, etiqueta) => SVG(80, 84, figura(f), etiqueta);
+  function abstracto(R) {
+    // dos o tres atributos cambian con una regla fija; el resto queda igual
+    const reglas = R.mezcla(["ang", "puntos", "lleno", "forma"]).slice(0, R.ri(2, 3)), d = R.pick([45, 90]), dp = R.pick([1, 1, -1]);
+    const ini = {forma: R.ri(0, 2), lleno: R.r() < .5, ang: R.pick([0, 45, 90, 135]), puntos: dp > 0 ? R.ri(0, 1) : R.ri(4, 5)};
+    const paso = i => ({forma: reglas.includes("forma") ? (ini.forma + i) % 3 : ini.forma, lleno: reglas.includes("lleno") ? (i % 2 ? !ini.lleno : ini.lleno) : ini.lleno,
+      ang: reglas.includes("ang") ? (ini.ang + d * i) % 360 : ini.ang, puntos: reglas.includes("puntos") ? ini.puntos + dp * i : ini.puntos});
+    const serie = [0, 1, 2, 3].map(paso), buena = paso(4);
+    if (buena.puntos < 0 || buena.puntos > 6) return abstracto(R);
+    const variar = (f, k) => ({...f, ...{ang: {ang: (f.ang + (k === 0 ? d : 180)) % 360}, puntos: {puntos: f.puntos + (k ? -1 : 1)}, lleno: {lleno: !f.lleno}, forma: {forma: (f.forma + 1 + k) % 3}}[R.pick(Object.keys({ang: 1, puntos: 1, lleno: 1, forma: 1}))]});
+    const malas = [], ver = new Set([JSON.stringify(buena)]);
+    for (let k = 0; malas.length < 3 && k < 60; k++) { const m = variar(buena, k % 2); if (m.puntos >= 0 && m.puntos <= 6 && !ver.has(JSON.stringify(m))) { ver.add(JSON.stringify(m)); malas.push(m); } }
+    if (malas.length < 3) return abstracto(R);
+    const orden = R.mezcla([0, 1, 2, 3]), fig = [buena, ...malas];
+    const nombres = {ang: `la aguja gira ${d}° en cada paso`, puntos: `los puntos ${dp > 0 ? "aumentan" : "disminuyen"} de uno en uno`, lleno: "la figura alterna entre rellena y vacía", forma: "la forma pasa de círculo a cuadrado y a triángulo"};
+    const tira = serie.map((f, i) => `<g transform="translate(${i * 88} 0)">${figura(f)}</g>`).join("") + `<g transform="translate(${4 * 88} 0)"><rect x="8" y="8" width="64" height="64" rx="8" fill="none" stroke="${SUAVE}" stroke-width="3" stroke-dasharray="6 5"/><text x="40" y="50" text-anchor="middle" font-size="26" fill="${SUAVE}">?</text></g>`;
+    return {e: "¿Qué figura continúa la serie?", svg: SVG(5 * 88, 84, tira, "serie de cuatro figuras"), osvg: orden.map(i => caja(fig[i], "opción")), o: orden.map((_, j) => `Figura ${"ABCD"[j]}`), r: orden.indexOf(0),
+      exp: `Las reglas: ${reglas.map(r => nombres[r]).join("; ")}.`}; }
+
+  const GEN = {NUM: numerico, VER: verbal, ESP: espacial, MEC: mecanico, PER: perceptivo, MEM: memoria, ABS: abstracto};
+  function pregunta(f, n) { const id = `T-${f}-${String(n).padStart(4, "0")}`, R = azar(id);
+    return {id, psico: true, tema: f, oep: "Práctica", n, ...GEN[f](R)}; }
+  // el banco: n preguntas de cada factor, siempre las mismas
+  const banco = n => Object.keys(FACTORES).flatMap(f => Array.from({length: n}, (_, i) => pregunta(f, i + 1)));
+  return {FACTORES, pregunta, banco};
+})();
+
 let OPK = null; try { OPK = localStorage.getItem("opos-sel"); } catch (e) { /* sin almacenamiento */ }
 const HASH = location.hash.replace("#", "");
 // al pasar a otra sección el enlace pasa a ser #temas: hay que recordar la oposición para cuando se recargue
@@ -35,8 +231,10 @@ const colores = c => c.color ? `--c:${c.color[0]};--c2:${c.color[1]};--ct:${c.co
 const miles = n => String(n).replace(/(\d)(?=(\d{3})+$)/g, "$1.");   // 2.573 también con cuatro cifras, como en el resto de la web
 $("#pt-burbujas").insertAdjacentHTML("beforeend", OPL.map(([k, o], i) =>
   `<a class="pt-op" href="#${k}" data-k="${k}" style="${colores(o.cfg)}"><span class="pt-b" aria-hidden="true">${LETRA[i]}</span>${esc(o.cfg.nombreCorto)}</a>`).join(""));
-const totP = OPL.reduce((x, [, o]) => x + (o.cfg.portada?.[1]?.[0] || 0), 0), totC = OPL.reduce((x, [, o]) => x + (o.cfg.portada?.[0]?.[0] || 0), 0);
-$("#pt-lede").innerHTML = `<b>${miles(totP)} preguntas</b> de ${totC} exámenes oficiales, analizadas una a una: qué temas caen, qué leyes se repiten y simulacros corregidos con la plantilla del tribunal. Puedes cambiar de oposición cuando quieras.`;
+// las cifras de exámenes analizados no incluyen Tropa y Marinería: sus preguntas son psicotécnicos de práctica
+const OPX = OPL.filter(([, o]) => !o.cfg.psico), OPP = OPL.filter(([, o]) => o.cfg.psico);
+const totP = OPX.reduce((x, [, o]) => x + (o.cfg.portada?.[1]?.[0] || 0), 0), totC = OPX.reduce((x, [, o]) => x + (o.cfg.portada?.[0]?.[0] || 0), 0);
+$("#pt-lede").innerHTML = `<b>${miles(totP)} preguntas</b> de ${totC} exámenes oficiales, analizadas una a una: qué temas caen, qué leyes se repiten y simulacros corregidos con la plantilla del tribunal${OPP.length ? `; y psicotécnicos de práctica para ${OPP.map(([, o]) => esc(o.cfg.nombreCorto)).join(" y ")}` : ""}. Puedes cambiar de oposición cuando quieras.`;
 $("#op-cards").innerHTML = OPL.map(([k, o], i) => { const c = o.cfg, d = diasHasta(c.fechaExamen), nop = c.nOpciones || 4;
   return `<article class="opcard" data-k="${k}" style="${colores(c)}">
     <div class="oc-foto">${c.imagen ? `<img class="oc-img" src="${c.imagen}" alt="${esc(c.imagenAlt || "")}" loading="lazy">` : `<div class="oc-sinimg"></div>`}
@@ -44,7 +242,7 @@ $("#op-cards").innerHTML = OPL.map(([k, o], i) => { const c = o.cfg, d = diasHas
     <div class="oc-top"><div class="oc-cab"><span class="pt-b" aria-hidden="true">${LETRA[i]}</span><span class="oc-cuerpo">${esc(c.cuerpo)}</span></div>
     <h2>${esc(c.nombreCorto)}</h2><p class="oc-res">${esc(c.resumen)}${d >= 0 ? ` <b>Próximo examen: ${esc(c.fechaExamenTexto)}.</b>` : ""}</p></div>
     ${c.portada ? `<dl class="oc-cifras">${c.portada.map(([n, t]) => `<div><dt>${esc(t)}</dt><dd>${miles(n)}</dd></div>`).join("")}</dl>` : ""}
-    <p class="oc-formato"><b>El test:</b> ${c.simN} preguntas de ${nop} opciones en ${c.simMin} minutos; cada fallo resta 1/${nop - 1} de acierto.</p>
+    <p class="oc-formato">${c.formatoTarjeta || `<b>El test:</b> ${c.simN} preguntas de ${nop} opciones en ${c.simMin} minutos; cada fallo resta 1/${nop - 1} de acierto.`}</p>
     <button class="primary oc-ir" data-k="${k}">Entrar en ${esc(c.nombreCorto)}</button></article>`; }).join("");
 $("#op-cards").querySelectorAll(".opcard").forEach(card => card.onclick = () => elegirOp(card.dataset.k));
 $("#pt-burbujas").querySelectorAll(".pt-op").forEach(a => {
@@ -121,7 +319,7 @@ $("#portal").hidden = !PORTAL; $("#main").hidden = PORTAL; document.querySelecto
 document.title = PORTAL ? "Radiografía de Oposiciones" : "Radiografía " + C.nombreCorto;
 [["#h-eyebrow", C.cuerpo], ["#h-title", C.titulo]].forEach(([s, v]) => $(s).textContent = v);
 if (C.imagen) { $("#h-img").src = C.imagen; $("#h-img").alt = C.imagenAlt || ""; $("#h-img").hidden = false; }
-[["#h-lede", C.lede], ["#ex-intro", C.exIntro], ["#sim-desc", C.simDesc], ["#temas-intro", C.temasIntro], ["#heat-note", C.heatNote],
+[["#h-claves", C.tituloClaves], ["#h-lede", C.lede], ["#ex-intro", C.exIntro], ["#sim-desc", C.simDesc], ["#temas-intro", C.temasIntro], ["#heat-note", C.heatNote],
  ["#normas-title", C.normasTitulo], ["#normas-intro", C.normasIntro], ["#normas-h3", C.normasH3], ["#formato-intro", C.formatoIntro],
  ["#formato-title", C.formatoTitulo], ["#rep-intro", C.repIntro], ["#metodo-body", C.metodoHTML], ["#pie", C.pie], ["#nav-normas", C.navNormas], ["#nav-formato", C.navFormato]]
   .forEach(([s, v]) => { if (v != null) $(s).innerHTML = v; });
@@ -392,7 +590,7 @@ $("#tm-q").addEventListener("input", drawTemario); $("#tm-orden").addEventListen
 if (PROG.length) drawTemario(); else { $("#temario").remove(); document.querySelector('nav.toc [data-sec="temario"]')?.remove(); }
 if (/^ficha-/.test(location.hash.slice(1))) mostrarVista(location.hash.slice(1));   // enlace directo a un tema: las fichas no existían al arrancar
 if (PDFS?.todo) { Object.assign($("#tm-pdf"), {href: PDFS.base + "temario.pdf", target: "_blank", rel: "noopener"}); if (PDF_LOCAL) $("#tm-pdf").download = `Temario de ${C.nombreCorto}.pdf`;
-  $("#tm-pdf-t").textContent = `PDF, ${kb(PDFS.todo)}`; } else $("#tm-pdf").hidden = true;
+  $("#tm-pdf-t").textContent = `PDF, ${kb(PDFS.todo)}`; } else if ($("#tm-pdf")) $("#tm-pdf").hidden = true;   // sin temario la sección ya no está
 // ?pdf=D12 (o ?pdf=todo): la página queda como la imprime generar_pdfs.py, con solo esa ficha (o todas) abierta
 function prepararPdf(ks) { const fichas = [...document.querySelectorAll("#tm-lista .ficha")].filter(d => !ks || ks.includes(d.dataset.k));
   fichas.forEach(d => { d.open = true; d.classList.add("imprimir"); });
@@ -405,12 +603,14 @@ document.addEventListener("click", e => { const b = e.target.closest("[data-banc
   $("#f-tema").value = b.dataset.bancoTema; ["#f-q", "#f-ano"].forEach(s => $(s).value = ""); filterBanco(); location.hash = "banco"; });
 
 /* ================= EXÁMENES ================= */
-const EX = D.examen.map((q, i) => ({...q, id: q.oep + "-" + (q.ej || "") + "-" + q.n, i}));
+// en Tropa y Marinería las preguntas no son de examen: las genera psicotecnicos.js, cada una con su identificador fijo
+if (C.psico) D.examen = PSICO.banco(C.psico.porFactor);
+const EX = D.examen.map((q, i) => ({...q, id: q.id || q.oep + "-" + (q.ej || "") + "-" + q.n, i}));
 const EXI = Object.fromEntries(EX.map(q => [q.id, q]));
 const BLQ = C.bloques.map(b => b[0]);
 const REPARTO = C.reparto;
 const CORTES = C.cortes, ESC = C.escala;
-const NOP = C.nOpciones || 4, LET = "ABCDE", DIV = NOP - 1;  // cada error resta 1/(n-1)
+const NOP = C.nOpciones || 4, LET = "ABCDE", DIV = C.penaliza === false ? Infinity : NOP - 1;  // cada error resta 1/(n-1), salvo donde solo cuentan los aciertos
 const opsTxt = (q, sep) => q.o.map((o, j) => `${LET[j]}) ${o}`).join(sep);
 const LS = C.lsKey;
 let LS_SUF = "";   // con sesión iniciada, cada cuenta guarda su copia local aparte de la del visitante
@@ -432,10 +632,19 @@ const repasoIds = (hasta = hoyISO()) => Object.entries(HIST.stats).filter(([id, 
 const enRepaso = () => Object.values(HIST.stats).filter(s => s.caja).length;
 
 // la misma pregunta puede repetirse en varias convocatorias: que no salga dos veces en un examen
-const clave = q => normTxt(q.e).replace(/[^a-z0-9]+/g, " ").slice(0, 160);
+const clave = q => q.psico ? q.id : normTxt(q.e).replace(/[^a-z0-9]+/g, " ").slice(0, 160);   // las de figuras comparten enunciado
+// lo que tienen de más los psicotécnicos: el dibujo del enunciado, opciones con dibujo o en letra de código, y la ficha de memoria
+const opcionHTML = (q, j) => q.osvg ? `<span class="ps-op">${q.osvg[j]}</span>` : `<span${q.mono ? ' class="ps-mono"' : ""}>${esc(q.o[j])}</span>`;
+const enunciadoHTML = q => `<p class="st${q.mono ? " ps-mono" : ""}">${esc(q.e)}</p>`;
+function extrasHTML(q, abierta = false) { return (q.svg ? `<div class="ps-svg">${q.svg}</div>` : "") + (!q.mem ? "" : abierta ? `<div class="ps-mem">${q.mem.html}</div>`
+  : `<div class="ps-mem" data-seg="${q.mem.seg}"><button class="ps-ver">Ver la ficha (${q.mem.seg} s)</button><div class="ps-mem-c" hidden>${q.mem.html}</div></div>`); }
+// la ficha de memoria se ve una sola vez y unos segundos, como en la prueba
+document.addEventListener("click", e => { const b = e.target.closest(".ps-ver"); if (!b) return;
+  const m = b.closest(".ps-mem"), c = m.querySelector(".ps-mem-c"); let s = +m.dataset.seg; c.hidden = false; b.disabled = true; b.textContent = `Memoriza: ${s} s`;
+  const t = setInterval(() => { s--; b.textContent = `Memoriza: ${s} s`; if (s <= 0) { clearInterval(t); c.remove(); b.textContent = "Ficha vista"; } }, 1000); });
 const unicas = qs => { const vistos = new Set(); return qs.filter(q => { const k = clave(q); if (vistos.has(k)) return false; vistos.add(k); return true; }); };
 const selTema = $("#ex-tema");
-selTema.innerHTML = BLQ.map(b => `<option value="B:${b}">Bloque: ${b}</option>`).join("") +
+selTema.innerHTML = (C.psico ? "" : BLQ.map(b => `<option value="B:${b}">Bloque: ${b}</option>`).join("")) +
   Object.entries(TEMAS).filter(([k]) => !k.startsWith("X")).map(([k, v]) => { const n = unicas(EX.filter(q => q.tema === k)).length; return n ? `<option value="T:${k}">${k}. ${esc(v)} (${n})</option>` : ""; }).join("");
 const modo = () => document.querySelector('input[name="modo"]:checked').value;
 function pool() { const m = modo(), sinRep = $("#ex-nuevas").checked; let p = EX;
@@ -459,7 +668,7 @@ document.querySelectorAll('input[name="modo"], #ex-tema, #ex-nuevas').forEach(e 
 // fuera las que se refieren a otras opciones («todas las anteriores», «a y b»): con 3 de 4 respuestas, o barajadas, dejan de tener sentido
 const CRUZADA = /anteriores|ninguna de las|todas (las|ellas|son)|ambas|las dos|(^|\W)[a-d]\)\s*(y|e|o)\s*[a-d]\)|\b(letras?|opciones|respuestas|apartados) [a-d]\b|\b[a-d] y [a-d]\b/i;
 const JUGABLES = unicas(EX).filter(q => !q.o.some(o => CRUZADA.test(o)));
-$("#jg-tema").innerHTML = `<option value="">Todo el temario</option>` + BLQ.map(b => `<option value="B:${b}">Bloque: ${esc(b)}</option>`).join("") +
+$("#jg-tema").innerHTML = `<option value="">${C.psico ? "Todos los factores" : "Todo el temario"}</option>` + (C.psico ? "" : BLQ.map(b => `<option value="B:${b}">Bloque: ${esc(b)}</option>`).join("")) +
   Object.entries(TEMAS).filter(([k]) => !k.startsWith("X")).map(([k, v]) => { const n = JUGABLES.filter(q => q.tema === k).length; return n >= 5 ? `<option value="T:${k}">${k}. ${esc(v)} (${n})</option>` : ""; }).join("");
 function poolJuego() { const v = $("#jg-tema").value;
   return !v ? JUGABLES : v.startsWith("B:") ? JUGABLES.filter(q => bloqueDe(q.tema) === v.slice(2)) : JUGABLES.filter(q => q.tema === v.slice(2)); }
@@ -481,8 +690,15 @@ function siguienteJuego() { const J = JUEGO;
   const q = J.cola[J.i], falsas = shuffle(q.o.map((_, j) => j).filter(j => j !== q.r)).slice(0, 2);
   J.q = q; J.ops = shuffle([q.r, ...falsas]); J.resuelta = false; $("#jg-boe").innerHTML = "";
   $("#jg-tag").textContent = `${NOMBRE_OEP(String(q.oep))} · ${q.tema}. ${TEMAS[q.tema] || ""}`;
-  $("#jg-q").textContent = q.e;
-  $("#jg-ops").innerHTML = J.ops.map((j, n) => `<button class="jg-op" data-j="${j}"><span class="l">${n + 1}</span><span>${esc(q.o[j])}</span></button>`).join("");
+  $("#jg-q").textContent = q.e; $("#jg-q").classList.toggle("ps-mono", !!q.mono);
+  $("#jg-ops").innerHTML = J.ops.map((j, n) => `<button class="jg-op" data-j="${j}"><span class="l">${n + 1}</span>${opcionHTML(q, j)}</button>`).join("");
+  // psicotécnicos: el dibujo, o la ficha de memoria (se ve unos segundos y después salen las respuestas)
+  $("#jg-extra").innerHTML = q.svg ? `<div class="ps-svg">${q.svg}</div>` : "";
+  if (q.mem) { let s = q.mem.seg; $("#jg-ops").hidden = true; $("#jg-q").hidden = true;
+    $("#jg-extra").innerHTML = `<div class="ps-mem">${q.mem.html}</div><p class="note" id="jg-cuenta">Memoriza: ${s} s</p>`;
+    const t = setInterval(() => { if (JUEGO !== J || J.q !== q) return clearInterval(t); s--; const c = $("#jg-cuenta"); if (c) c.textContent = `Memoriza: ${s} s`;
+      if (s <= 0) { clearInterval(t); $("#jg-extra").innerHTML = ""; $("#jg-ops").hidden = false; $("#jg-q").hidden = false; $("#jg-ops button").focus({preventScroll: true}); } }, 1000); }
+  else { $("#jg-ops").hidden = false; $("#jg-q").hidden = false; }
   $("#jg-msg").textContent = ""; $("#jg-msg").className = "jg-msg"; pintarJuego();
   $("#jg-ops button").focus({preventScroll: true}); }
 function pintarJuego() { const J = JUEGO;
@@ -492,7 +708,7 @@ function pintarJuego() { const J = JUEGO;
 function anotarJuego(q, bien) { const s = HIST.stats[q.id] || {vistas: 0, aciertos: 0}; s.vistas++; if (bien) s.aciertos++; s.ultimo = bien ? "ok" : "ko"; programar(s, bien);
   HIST.stats[q.id] = s; saveHist(HIST); JUEGO.resp.push({q: q.id, v: bien ? "ok" : "ko"}); }
 // una sola oportunidad: si fallas se marca la correcta y se acaba la partida
-function responderJuego(b) { const J = JUEGO; if (!J || J.resuelta) return;
+function responderJuego(b) { const J = JUEGO; if (!J || J.resuelta || $("#jg-ops").hidden) return;   // oculta mientras se memoriza la ficha
   J.resuelta = true; const j = +b.dataset.j, bien = j === J.q.r, botones = [...$("#jg-ops").children];
   botones.forEach(x => { x.disabled = true; if (+x.dataset.j === J.q.r) x.classList.add("ok"); });
   anotarJuego(J.q, bien);
@@ -558,7 +774,8 @@ $("#jg-volver").onclick = () => { drawHist(); abrirMenuJuego(); };
 $("#jg-otra").onclick = () => { JUEGO = null; empezarJuego(); };
 
 /* --- tu progreso: acierto por tema y qué repasar primero --- */
-const peso = t => (tm[t] || {}).pct_ultimos || 0;            // % medio del tema en los últimos exámenes
+// % medio del tema en los últimos exámenes; en Tropa y Marinería los siete factores pesan lo mismo
+const peso = t => C.psico ? 100 / Object.keys(TEMAS).length : (tm[t] || {}).pct_ultimos || 0;
 const poolTema = {}; unicas(EX).forEach(q => poolTema[q.tema] = (poolTema[q.tema] || 0) + 1);
 function porTema() { const o = {};
   Object.entries(HIST.stats).forEach(([id, s]) => { const q = EXI[id]; if (!q) return; const t = o[q.tema] = o[q.tema] || {n: 0, ok: 0};
@@ -587,7 +804,7 @@ function drawProg() { const el = $("#prog-body"), it = examenes();
     <div><b>${fmt(media, 1)}</b><span>media de los ${ult.length} últimos, sobre ${ESC}</span></div></div>` +
     (it.length >= 2 ? sparkNotas(it.slice(-20)) : "") +
     `<h3 style="font-size:1rem;margin:16px 0 4px">Qué repasar primero</h3>
-    <p class="note" style="margin-bottom:8px">Ordenado por lo que te puede dar cada tema: su peso en los últimos exámenes por la parte que aún fallas (cuenta tu última respuesta a cada pregunta; un tema sin practicar cuenta como un 50 %).</p>
+    <p class="note" style="margin-bottom:8px">${C.psico ? "Ordenado por lo que más fallas en cada factor (cuenta tu última respuesta a cada pregunta; un factor sin practicar cuenta como un 50 %)." : "Ordenado por lo que te puede dar cada tema: su peso en los últimos exámenes por la parte que aún fallas (cuenta tu última respuesta a cada pregunta; un tema sin practicar cuenta como un 50 %)."}</p>
     <div class="scroll"><table class="prio"><thead><tr><th>Tema</th><th class="num">Peso en el examen</th><th class="num">Practicadas</th><th class="num">Acierto</th><th>Prioridad</th><th></th></tr></thead><tbody>` +
     filas.map(p => `<tr><td>${esc(TEMAS[p.t])}</td><td class="num">${fmt(p.peso, 1)} %</td><td class="num">${p.n} de ${p.total}</td><td class="num">${p.ac == null ? `<span class="muted">sin practicar</span>` : fmt(100 * p.ac) + " %"}</td>
       <td><div class="pb"><i style="width:${(100 * p.prio / max).toFixed(0)}%"></i></div></td><td><button data-practicar="${p.t}" aria-label="Practicar ${esc(TEMAS[p.t])}">Practicar</button></td></tr>`).join("") + `</tbody></table></div>` +
@@ -600,15 +817,15 @@ function drawProg() { const el = $("#prog-body"), it = examenes();
 function sparkNotas(it) { const W = 520, H = 110, m = {l: 30, r: 14, t: 12, b: 20};
   const top = Math.max(ESC, ...it.map(x => x.nota120)), bot = Math.min(0, ...it.map(x => x.nota120));
   const x = i => m.l + (W - m.l - m.r) * (it.length === 1 ? .5 : i / (it.length - 1)), y = v => m.t + (H - m.t - m.b) * (top - v) / (top - bot || 1);
-  const pts = it.map((d, i) => `${x(i).toFixed(1)},${y(d.nota120).toFixed(1)}`).join(" "), ref = Math.max(...CORTES.map(c => c[1])), L = it.length - 1;
+  const pts = it.map((d, i) => `${x(i).toFixed(1)},${y(d.nota120).toFixed(1)}`).join(" "), ref = CORTES.length ? Math.max(...CORTES.map(c => c[1])) : null, L = it.length - 1;
   return `<svg class="spark" viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolución de tu nota en los últimos ${it.length} intentos">
-    <line x1="${m.l}" x2="${W - m.r}" y1="${y(ref)}" y2="${y(ref)}" style="stroke:var(--red-2)" stroke-dasharray="4 3"/>
-    <text x="${m.l - 4}" y="${y(ref) + 4}" text-anchor="end" font-size="10" style="fill:var(--muted)">${fmt(ref, ref % 1 ? 1 : 0)}</text>
+    ${ref == null ? "" : `<line x1="${m.l}" x2="${W - m.r}" y1="${y(ref)}" y2="${y(ref)}" style="stroke:var(--red-2)" stroke-dasharray="4 3"/>
+    <text x="${m.l - 4}" y="${y(ref) + 4}" text-anchor="end" font-size="10" style="fill:var(--muted)">${fmt(ref, ref % 1 ? 1 : 0)}</text>`}
     <line x1="${m.l}" x2="${W - m.r}" y1="${y(0)}" y2="${y(0)}" style="stroke:var(--rule)"/><text x="${m.l - 4}" y="${y(0) + 4}" text-anchor="end" font-size="10" style="fill:var(--muted)">0</text>
     <polyline points="${pts}" fill="none" style="stroke:var(--pen)" stroke-width="2"/>
     ${it.map((d, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(d.nota120).toFixed(1)}" r="${i === L ? 4 : 2.5}" style="fill:var(--pen)"><title>${new Date(d.t).toLocaleDateString("es-ES")}: ${fmt(d.nota120, 1)} (${esc(d.tipo)})</title></circle>`).join("")}
     <text x="${x(L)}" y="${y(it[L].nota120) - 8}" text-anchor="end" font-size="11" font-weight="600" style="fill:var(--ink)">${fmt(it[L].nota120, 1)}</text>
-    <text x="${m.l}" y="${H - 4}" font-size="10" style="fill:var(--muted)">Tus últimos ${it.length} intentos. Línea discontinua: ${esc(CORTES.reduce((a, b) => b[1] > a[1] ? b : a)[0])}</text></svg>`; }
+    <text x="${m.l}" y="${H - 4}" font-size="10" style="fill:var(--muted)">Tus últimos ${it.length} intentos.${ref == null ? "" : ` Línea discontinua: ${esc(CORTES.reduce((a, b) => b[1] > a[1] ? b : a)[0])}`}</text></svg>`; }
 
 function drawHist() { drawProg(); const it = examenes().slice(-8).reverse();
   $("#ex-hist").innerHTML = it.length ? `<h3 style="font-size:1rem;margin-bottom:6px">Tus últimos intentos</h3><div class="scroll"><table><thead><tr><th>Fecha</th><th>Tipo</th><th class="num">Preguntas</th><th class="num">Aciertos</th><th class="num">Fallos</th><th class="num">Nota sobre ${ESC}</th></tr></thead><tbody>` +
@@ -655,7 +872,7 @@ function elegir() { const m = modo();
 function render(qs, tiempoMin) {
   $("#ex-config").hidden = true; $("#ex-prog").hidden = true; $("#ex-res").hidden = true; $("#ex-run").hidden = false;
   $("#ex-qs").innerHTML = qs.map((q, k) => `<div class="exq" id="q${k}"><div class="hd"><span><span class="qn">${k + 1}</span><span class="src">${origen(q)}</span></span><button class="flag" aria-pressed="false" data-k="${k}">Marcar para revisar</button></div>
-    <p class="st">${esc(q.e)}</p>${q.o.map((o, j) => `<label class="opt"><input type="radio" name="r${k}" value="${j}"><span class="l">${LET[j]}</span><span>${esc(o)}</span></label>`).join("")}
+    ${extrasHTML(q)}${enunciadoHTML(q)}${q.o.map((o, j) => `<label class="opt"><input type="radio" name="r${k}" value="${j}"><span class="l">${LET[j]}</span>${opcionHTML(q, j)}</label>`).join("")}
     <button class="flag" data-clear="${k}" style="margin-top:6px">Dejar en blanco</button></div>`).join("");
   $("#ex-qs").querySelectorAll("[data-clear]").forEach(b => b.onclick = () => { document.querySelectorAll(`input[name="r${b.dataset.clear}"]`).forEach(i => i.checked = false); progreso(); });
   $("#ex-qs").querySelectorAll(".flag[data-k]").forEach(b => b.onclick = () => { b.setAttribute("aria-pressed", b.getAttribute("aria-pressed") === "true" ? "false" : "true"); progreso(); });
@@ -674,7 +891,7 @@ function progreso() { if (!CUR) return; const n = CUR.qs.length; let r = 0; for 
     b.classList.toggle("fl", document.querySelector(`.flag[data-k="${k}"]`)?.getAttribute("aria-pressed") === "true"); });
   guardarCurso(); }
 // de dónde sale cada pregunta, en palabras
-const origen = q => q.ia ? "Pregunta nueva generada por IA" : `${NOMBRE_OEP(q.oep)}${q.ej ? ", modelo " + q.ej : ""}, pregunta ${q.n}`;
+const origen = q => q.ia ? "Pregunta nueva generada por IA" : q.psico ? `Psicotécnico de práctica, factor ${TEMAS[q.tema].toLowerCase()}` : `${NOMBRE_OEP(q.oep)}${q.ej ? ", modelo " + q.ej : ""}, pregunta ${q.n}`;
 $("#ex-sheet-toggle").onclick = () => { const sh = $("#ex-sheet"), b = $("#ex-sheet-toggle"); sh.hidden = !sh.hidden;
   b.textContent = sh.hidden ? "Ver hoja" : "Ocultar hoja"; b.setAttribute("aria-expanded", String(!sh.hidden)); };
 function tick() { const el = $("#ex-timer"); if (!CUR) return;
@@ -706,13 +923,13 @@ function corregir(porTiempo = false) {
   if (!qs[0].ia) GANCHOS.alCorregir?.({hoy: hoyISO(), tipo: CUR.tipo, n: qs.length, ok, ko, bl, nota: Math.round(nota120 * 100) / 100, escala: ESC, segundos: seg, tarea: CUR.tarea || null,
     por_bloque: porB, por_tema: porT, respuestas: qs.map((q, k) => ({q: q.id, v: resp[k] === null ? "bl" : resp[k] === q.r ? "ok" : "ko"}))});
   const hi = Math.max(...CORTES.map(c => c[1])), lo = Math.min(...CORTES.map(c => c[1]));
-  const corte = nota120 >= hi ? [C.veredictos[0], "var(--good)"] : nota120 >= lo ? [C.veredictos[1], "var(--s4)"] : [C.veredictos[2], "var(--bad)"];
+  const corte = !CORTES.length ? null : nota120 >= hi ? [C.veredictos[0], "var(--good)"] : nota120 >= lo ? [C.veredictos[1], "var(--s4)"] : [C.veredictos[2], "var(--bad)"];
   $("#ex-score").innerHTML = `${porTiempo ? `<p class="note" style="margin-bottom:8px">Se acabó el tiempo: se ha corregido lo que llevabas.</p>` : ""}
     <div class="scorebig"><div><span class="eyebrow">Nota equivalente sobre ${ESC}</span><div class="n">${fmt(nota120, 1)}</div></div>
     <div style="display:grid;gap:4px"><span><span class="res-ok">✓ ${ok} aciertos</span>, <span class="res-ko">✗ ${ko} fallos</span>, <span class="res-bl">— ${bl} en blanco</span></span>
-    <span class="ink2">Puntuación neta: ${fmt(ok, 0)} − ${fmt(ko, 0)}/${DIV} = <b>${fmt(neta, 2)}</b> sobre ${qs.length}. Tiempo: ${Math.floor(seg / 60)} min ${seg % 60} s</span>
-    <span class="verdict" style="color:${corte[1]}">${corte[0]}</span></div></div>
-    <p class="note" style="margin-top:10px">${C.cortesNota} ${CORTES.map(([o, c]) => `${o}: ${fmt(c, 2)}`).join("; ")}. La nota sobre ${ESC} escala tu puntuación neta al tamaño del examen real.</p>
+    <span class="ink2">${DIV === Infinity ? `Sin penalización: solo cuentan los aciertos (<b>${ok}</b> de ${qs.length})` : `Puntuación neta: ${fmt(ok, 0)} − ${fmt(ko, 0)}/${DIV} = <b>${fmt(neta, 2)}</b> sobre ${qs.length}`}. Tiempo: ${Math.floor(seg / 60)} min ${seg % 60} s</span>
+    ${corte ? `<span class="verdict" style="color:${corte[1]}">${corte[0]}</span>` : ""}</div></div>
+    ${CORTES.length ? `<p class="note" style="margin-top:10px">${C.cortesNota} ${CORTES.map(([o, c]) => `${o}: ${fmt(c, 2)}`).join("; ")}. La nota sobre ${ESC} escala tu puntuación neta al tamaño del examen real.</p>` : C.notaNota ? `<p class="note" style="margin-top:10px">${C.notaNota}</p>` : ""}
     <h3 style="font-size:1rem;margin:18px 0 6px">Tu hoja corregida</h3>
     <div class="sheet res" id="ex-sheet-res">${qs.map((q, k) => { const v = resp[k], e = v === null ? "" : v === q.r ? "ok" : "ko";
       return `<button class="${e}" data-k="${k}" aria-label="Pregunta ${k + 1}: ${e === "ok" ? "acierto" : e === "ko" ? "fallo" : "en blanco"}"><i></i>${k + 1}</button>`; }).join("")}</div>
@@ -733,7 +950,7 @@ $("#ex-submit").onclick = $("#ex-submit2").onclick = () => {
 function drawReview() { const f = $("#ex-filtro").value; const qs = CUR.qs, rs = CUR.resp;
   $("#ex-review").innerHTML = qs.map((q, k) => { const v = rs[k], est = v === null ? "bl" : v === q.r ? "ok" : "ko"; if (f === "mal" && est === "ok") return "";
     return `<div class="exq" id="rv${k}"><div class="hd"><span><span class="qn">${k + 1}</span><span class="src">${origen(q)}. ${esc(TEMAS[q.tema] || "")}</span></span><span class="${est === "ok" ? "res-ok" : est === "ko" ? "res-ko" : "res-bl"}">${est === "ok" ? "✓ Acierto" : est === "ko" ? "✗ Fallo" : "— En blanco"}</span></div>
-      <p class="st">${esc(q.e)}</p>${q.o.map((o, j) => `<div class="opt ${j === q.r ? "ok" : j === v ? "ko" : ""}"><span class="l">${LET[j]}</span><span>${esc(o)}</span>${j === q.r ? `<span class="mk">✓ Correcta</span>` : j === v ? `<span class="mk">✗ Tu respuesta</span>` : ""}</div>`).join("")}
+      ${extrasHTML(q, true)}${enunciadoHTML(q)}${q.o.map((o, j) => `<div class="opt ${j === q.r ? "ok" : j === v ? "ko" : ""}"><span class="l">${LET[j]}</span>${opcionHTML(q, j)}${j === q.r ? `<span class="mk">✓ Correcta</span>` : j === v ? `<span class="mk">✗ Tu respuesta</span>` : ""}</div>`).join("")}
       ${boeHTML(q.a)}${q.exp ? `<div class="explica">${esc(q.exp)}</div>` : `<button class="explain" data-k="${k}" style="margin-top:8px" hidden>Explícamela</button><div class="explica" id="exp${k}" hidden></div>`}</div>`; }).join("") ||
     `<p class="note">Todas correctas. Elige «Todas» para revisarlas.</p>`;
   bindExplain(); }
@@ -764,6 +981,68 @@ async function generarIA() { const v = selTema.value, nombre = selTema.options[s
   finally { b.disabled = false; } }
 
 $("#mode-ia").hidden = true; syncConfig(); drawHist(); drawCurso();
+
+/* ================= TROPA Y MARINERÍA: calculadora de nota y pruebas físicas ================= */
+if (!C.psico) document.querySelectorAll(".solo-psico").forEach(e => e.remove());
+else {
+  // sin exámenes oficiales no hay análisis, temario ni banco: fuera del menú y de la página
+  document.querySelectorAll('nav.toc .nav-grupo, nav.toc [data-sec="temario"], nav.toc [data-sec="banco"]').forEach(e => e.remove());
+  ["temas", "normas", "repetidas", "formato", "metodo", "temario", "banco"].forEach(id => document.getElementById(id)?.remove());
+  $("nav.seguir").innerHTML = `<a href="#examenes"><b>Practica la prueba</b><span>Simulacros y tests de los siete factores, sin penalización</span></a>
+    <a href="#nota"><b>Calcula tu nota</b><span>Tus méritos con el baremo oficial y tus aciertos</span></a>
+    <a href="#fisicas"><b>Pruebas físicas</b><span>Comprueba si llegas a las marcas mínimas</span></a>`;
+  document.querySelector('label.mode input[value="tema"] + span b').textContent = "Por factor";
+  document.querySelector('label.mode input[value="tema"] + span small').textContent = "Céntrate en el que más te cuesta";
+  $("#lb-tema").firstChild.textContent = "Factor";
+
+  // --- tu nota: méritos (0–40 → 0–10) y prueba (aciertos → 0–10); ponderación 70/30 según las guías ---
+  const LSN = () => LS + LS_SUF + "-nota", campos = ["nt-carne", "nt-ingles", "nt-titulo", "nt-deporte", "nt-empleo", "nt-recomp", "nt-misiones", "nt-anos", "nt-aciertos"];
+  const val = id => { const e = $("#" + id); return e.type === "checkbox" ? (e.checked ? 3 : 0) : +e.value || 0; };
+  function calcularNota() {
+    const generales = Math.min(36, val("nt-carne") + val("nt-ingles") + val("nt-titulo") + val("nt-deporte"));
+    const militares = Math.min(4, val("nt-empleo") + val("nt-recomp") + 0.5 * val("nt-misiones") + 0.25 * val("nt-anos"));
+    const co = generales + militares, nco = co / 4, nop = val("nt-aciertos") / 10, pf = 0.7 * nop + 0.3 * nco;
+    $("#nt-co").textContent = fmt(co, co % 1 ? 2 : 0); $("#nt-co10").textContent = `${fmt(nco, 2)} sobre 10`;
+    $("#nt-op").textContent = fmt(nop, 2); $("#nt-pf").textContent = fmt(pf, 2); $("#nt-pct-v").textContent = `${val("nt-aciertos")} %`;
+    $("#nt-aviso").textContent = generales === 36 && val("nt-carne") + val("nt-ingles") + val("nt-titulo") + val("nt-deporte") > 36 ? "Los méritos generales y académicos llegan al máximo de 36 puntos." : "";
+    try { localStorage.setItem(LSN(), JSON.stringify(Object.fromEntries(campos.map(id => [id, $("#" + id).type === "checkbox" ? $("#" + id).checked : $("#" + id).value])))); } catch (e) { /* sin almacenamiento */ } }
+  try { const g = JSON.parse(localStorage.getItem(LSN())) || {}; campos.forEach(id => { if (id in g) $("#" + id)[$("#" + id).type === "checkbox" ? "checked" : "value"] = g[id]; }); } catch (e) { /* sin datos guardados */ }
+  campos.forEach(id => $("#" + id).addEventListener("input", calcularNota));
+  // con simulacros hechos, su media de aciertos rellena la prueba
+  function pintarMiMedia() { const ex = examenes().slice(-5); $("#nt-mi-media").hidden = !ex.length;
+    if (ex.length) $("#nt-mi-media").textContent = `Usar mi media: ${fmt(100 * ex.reduce((a, x) => a + x.ok / x.n, 0) / ex.length)} % (últimos ${ex.length})`; }
+  $("#nt-mi-media").onclick = () => { const ex = examenes().slice(-5); $("#nt-aciertos").value = Math.round(100 * ex.reduce((a, x) => a + x.ok / x.n, 0) / ex.length); calcularNota(); };
+  $("#nt-form").addEventListener("submit", e => e.preventDefault());
+  calcularNota(); pintarMiMedia();
+  addEventListener("hashchange", () => { if (location.hash === "#nota") pintarMiMedia(); });
+
+  // --- pruebas físicas: marcas mínimas de ingreso ---
+  const FS = C.fisicas, LSF = () => LS + LS_SUF + "-fisicas";
+  const mmss = s => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`;
+  const leeMin = v => { const m = String(v).trim().match(/^(\d{1,2})(?:[:'.,](\d{1,2}))?$/); return m ? +m[1] * 60 + (+m[2] || 0) : NaN; };
+  const sexo = () => document.querySelector('input[name="fs-sexo"]:checked').value;
+  $("#fs-fuente").textContent = `Marcas de ingreso: ${FS.fuente}. Compruébalas en tu convocatoria antes de la prueba.`;
+  let guardadas = {}; try { guardadas = JSON.parse(localStorage.getItem(LSF())) || {}; } catch (e) { /* sin datos guardados */ }
+  if (guardadas.sexo) document.querySelector(`input[name="fs-sexo"][value="${guardadas.sexo}"]`).checked = true;
+  function pintarFisicas() { const sx = sexo();
+    $("#fs-lista").innerHTML = FS.pruebas.map(([k, nombre, desc, unidad, h, m, sentido]) => { const marca = sx === "h" ? h : m;
+      const txt = unidad === "min" ? mmss(marca) : `${fmt(marca, marca % 1 ? 1 : 0)} ${unidad === "rep" ? "repeticiones" : "s"}`;
+      return `<div class="fs-fila" data-k="${k}"><div><b>${nombre}</b><span class="note">${desc} Marca mínima: <b>${sentido === "mas" ? "al menos" : "como mucho"} ${txt}</b>.</span></div>
+        <label for="fs-${k}" class="fs-in"><span class="fuera">Tu marca en ${nombre}</span><input id="fs-${k}" type="text" inputmode="${unidad === "min" ? "numeric" : "decimal"}" placeholder="${unidad === "min" ? "mm:ss" : "Tu marca"}" autocomplete="off" value="${esc(guardadas[k] ?? "")}"></label>
+        <span class="fs-est" id="fs-est-${k}"></span></div>`; }).join("");
+    $("#fs-lista").querySelectorAll("input").forEach(i => i.addEventListener("input", evaluarFisicas)); evaluarFisicas(); }
+  function evaluarFisicas() { const sx = sexo(); let hechas = 0, aptas = 0; guardadas = {sexo: sx};
+    FS.pruebas.forEach(([k, , , unidad, h, m, sentido]) => { const raw = $("#fs-" + k).value, marca = sx === "h" ? h : m, est = $("#fs-est-" + k); guardadas[k] = raw;
+      const v = unidad === "min" ? leeMin(raw) : parseFloat(String(raw).replace(",", "."));
+      if (!raw.trim() || isNaN(v)) { est.textContent = raw.trim() ? "Escríbela así: 11:30" : ""; est.className = "fs-est"; return; }
+      const ok = sentido === "mas" ? v >= marca : v <= marca; hechas++; if (ok) aptas++;
+      est.textContent = ok ? "Apto" : "No llegas"; est.className = "fs-est " + (ok ? "ok" : "ko"); });
+    $("#fs-total").textContent = !hechas ? "" : hechas < FS.pruebas.length ? `Llevas ${aptas} de ${hechas} pruebas superadas.` : aptas === hechas ? "Con estas marcas superas las cuatro pruebas." : `No llegas a ${hechas - aptas === 1 ? "una prueba" : `${hechas - aptas} pruebas`}: con una sola, quedas fuera.`;
+    $("#fs-total").className = "fs-total" + (hechas === FS.pruebas.length ? (aptas === hechas ? " ok" : " ko") : "");
+    try { localStorage.setItem(LSF(), JSON.stringify(guardadas)); } catch (e) { /* sin almacenamiento */ } }
+  document.querySelectorAll('input[name="fs-sexo"]').forEach(r => r.addEventListener("change", pintarFisicas));
+  pintarFisicas();
+}
 // cuenta atrás hasta el próximo examen, si la convocatoria tiene fecha
 if (C.fechaExamen) { const dias = diasHasta(C.fechaExamen);
   if (dias >= 0) { $("#h-cuenta").hidden = false; $("#h-cuenta").textContent = dias === 0 ? `El examen es hoy, ${C.fechaExamenTexto}.` : `Faltan ${dias} día${dias === 1 ? "" : "s"} para el examen (${C.fechaExamenTexto}).`; } }

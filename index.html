@@ -3,10 +3,25 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="description" content="Exámenes oficiales de oposiciones analizados pregunta a pregunta, con simulacros corregidos y seguimiento por preparador.">
+<meta name="description" content="Exámenes oficiales de Prisiones, Guardia Civil y Policía Nacional analizados pregunta a pregunta: simulacros corregidos, temario con sus leyes, repaso de fallos y juego. Gratis.">
+<link rel="canonical" href="https://davidramon15.github.io/Oposiciones/">
+<meta name="theme-color" content="#1c2541">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="fuentes/fuentes.css">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="es_ES">
+<meta property="og:site_name" content="Radiografía de Oposiciones">
+<meta property="og:title" content="Radiografía de Oposiciones: los exámenes oficiales, pregunta a pregunta">
+<meta property="og:description" content="Exámenes oficiales de Prisiones, Guardia Civil y Policía Nacional analizados pregunta a pregunta: simulacros corregidos, temario con sus leyes, repaso de fallos y juego. Gratis.">
+<meta property="og:url" content="https://davidramon15.github.io/Oposiciones/">
+<meta property="og:image" content="https://davidramon15.github.io/Oposiciones/compartir.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Radiografía de Oposiciones: Prisiones, Guardia Civil y Policía Nacional">
+<meta name="twitter:card" content="summary_large_image">
 <title>Radiografía de Oposiciones</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
 <style>
 /* Dirección: un cuaderno de estudio claro y amable. Papel blanco azulado, tinta azul marino y un color propio
    para cada oposición (naranja Prisiones, verde Guardia Civil, azul Policía Nacional) que tiñe la estructura:
@@ -227,7 +242,7 @@ details.rep summary b{font-family:var(--f-text);font-weight:600;font-size:1rem}
 .controls{display:flex;flex-wrap:wrap;gap:12px;align-items:end}
 .controls label{display:grid;gap:4px;font-size:.8rem;color:var(--ink-2);font-weight:500;min-width:0;max-width:100%}
 .controls select{width:100%;max-width:min(100%,460px);text-overflow:ellipsis}
-select,input[type=search]{font:inherit;font-size:.92rem;padding:8px 10px;border:1px solid var(--axis);border-radius:8px;background:var(--sheet);color:var(--ink);max-width:100%}
+select,input[type=search],input[type=number],input[type=text]{font:inherit;font-size:.92rem;padding:8px 10px;border:1px solid var(--axis);border-radius:8px;background:var(--sheet);color:var(--ink);max-width:100%}
 input[type=search]{min-width:min(100%,260px)}
 button,a.boton{font:500 .9rem var(--f-ui);padding:8px 14px;border:1px solid var(--axis);border-radius:8px;background:var(--sheet);color:var(--ink);cursor:pointer}
 button:hover,a.boton:hover{border-color:var(--ink-2)}
@@ -292,7 +307,8 @@ svg text{font-family:var(--f-ui)}
 .pt-que li:nth-child(2)::before{background:#ee7a3b}.pt-que li:nth-child(3)::before{background:#22a47a}.pt-que li:nth-child(4)::before{background:#e8a400}
 .pt-que li b{font-size:1rem}.pt-que li span{font-size:.92rem;color:var(--ink-2)}
 .pt-pie{padding-block:22px 40px!important;border-top:1px solid var(--red-2)}
-@media (max-width:900px){.pt-cards{grid-template-columns:minmax(0,1fr)}}
+.pt-cards:has(> .opcard:nth-child(4)){grid-template-columns:repeat(2,minmax(0,1fr))}   /* con cuatro oposiciones, dos filas de dos */
+@media (max-width:900px){.pt-cards,.pt-cards:has(> .opcard:nth-child(4)){grid-template-columns:minmax(0,1fr)}}
 @media (max-width:600px){.pt-marcar-t{flex-basis:100%}.pt-marca em{display:none}.pt-op{font-size:.95rem}.opcard{padding:0 16px 18px}.oc-img{width:calc(100% + 32px);margin:0 -16px 4px}}
 
 /* ===== exámenes: la hoja de respuestas ===== */
@@ -302,6 +318,28 @@ svg text{font-family:var(--f-ui)}
 .mode:has(input:checked){border-color:var(--pen);background:var(--pen-tint)}
 .mode input{margin-top:5px;accent-color:var(--pen)}
 .mode span{display:grid;gap:2px}.mode small{color:var(--ink-2);font-size:.82rem;line-height:1.35}
+/* psicotécnicos (Tropa y Marinería) */
+.ps-svg{margin:4px 0 10px;overflow-x:auto}.ps-svg svg{max-width:100%;height:auto}
+.ps-op{display:inline-flex}.ps-op svg{width:80px;height:auto;background:#fff;border:1px solid var(--rule);border-radius:8px}
+.ps-mono{font-family:ui-monospace,Consolas,"Courier New",monospace;letter-spacing:.06em;word-break:break-word}
+.ps-mem{margin:4px 0 10px}.ps-mem .ps-ver{font-size:.9rem}
+.ps-ficha{border-collapse:collapse;font-size:.95rem;margin-top:8px}.ps-ficha th,.ps-ficha td{padding:6px 12px;border:1px solid var(--rule);text-align:left}
+.ps-ficha th{background:var(--chip)}
+.ps-serie{font:700 1.8rem ui-monospace,Consolas,monospace;letter-spacing:.35em;margin:6px 0}
+.nt-form{display:grid;gap:12px;align-content:start}.nt-form label:not(.check){display:grid;gap:4px}.nt-form select,.nt-form input[type=number]{width:100%}
+.nt-mil{display:grid;gap:10px;margin-top:10px}.nt-mil label{display:grid;gap:4px}
+.nt-res{display:grid;gap:12px;align-content:start}.nt-res label{display:grid;gap:6px}
+.nt-pct{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}.nt-pct b{font-size:1.4rem}
+.nt-cifras{display:grid;gap:10px;margin:0}.nt-cifras div{display:grid;grid-template-columns:1fr auto;gap:2px 12px;align-items:baseline;padding:10px 0;border-top:1px solid var(--rule)}
+.nt-cifras dt{font-weight:600}.nt-cifras dd{margin:0;text-align:right}.nt-cifras dd.note{grid-column:2}
+.nt-cifras b{font-size:1.3rem}.nt-final b{font-size:2rem;color:var(--red)}
+.fs-lista{display:grid;gap:4px;margin-top:10px}
+.fs-fila{display:grid;grid-template-columns:1fr 130px 90px;gap:8px 14px;align-items:center;padding:12px 0;border-top:1px solid var(--rule)}
+.fs-fila > div{display:grid;gap:2px}.fs-in input{width:100%}
+.fs-est{font-weight:700}.fs-est.ok{color:var(--good)}.fs-est.ko{color:var(--bad)}
+.fs-total{font-weight:700;margin-top:10px;min-height:1.4em}.fs-total.ok{color:var(--good)}.fs-total.ko{color:var(--bad)}
+.fuera{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media (max-width:600px){.fs-fila{grid-template-columns:1fr 1fr}.fs-fila > div{grid-column:1 / -1}}
 /* «Practicar» en dos secciones: exámenes y tests, y el juego */
 .pr-tabs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px}
 .pr-tabs button{display:grid;gap:4px;text-align:left;padding:16px 18px;border:2px solid var(--rule);border-radius:var(--radio);background:var(--sheet);box-shadow:var(--sombra)}
@@ -429,9 +467,10 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
   .exbar .row button{font-size:.8rem;padding:6px 9px}#ex-timer{font-size:.95rem;margin-right:auto}}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 </style>
-<link rel="stylesheet" href="cuenta.css?v=3db63053b3">
+<link rel="stylesheet" href="cuenta.css?v=641e932218">
 </head>
 <body>
+<noscript><p style="padding:20px;font:16px/1.5 sans-serif">Esta web necesita JavaScript para funcionar: actívalo en tu navegador.</p></noscript>
 
 
 <div id="portal" hidden>
@@ -448,13 +487,15 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
     <div class="pt-cards" id="op-cards"></div>
     <div class="pt-que"><h2>Qué puedes hacer aquí</h2><ul id="pt-que"></ul></div>
   </main>
-  <footer class="wrap pt-pie"><span>Cuestionarios y plantillas de las convocatorias oficiales (BOE, Ministerio del Interior, Guardia Civil y Policía Nacional) y de recopilaciones publicadas por academias y opositores. El detalle de cada fuente está en «Método y fuentes» de cada oposición.</span></footer>
+  <footer class="wrap pt-pie"><span>Cuestionarios y plantillas de las convocatorias oficiales (BOE, Ministerio del Interior, Guardia Civil y Policía Nacional) y de recopilaciones publicadas por academias y opositores. El detalle de cada fuente está en «Método y fuentes» de cada oposición.</span><span>Web independiente: no está vinculada a ninguna administración ni tribunal de oposiciones.</span></footer>
 </div>
 <nav class="toc" aria-label="Secciones"><div class="in">
   <a href="#inicio" id="nav-cambiar" class="marca" title="Cambiar de oposición"><span class="marca-sup">Radiografía de</span><span class="marca-op"><span id="nav-op"></span><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1.5 3.5 5 7l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></a>
   <div class="nav-items" id="nav-items">
     <a href="#resumen" data-sec="resumen">Resumen</a>
     <a href="#examenes" class="nav-practicar" data-sec="examenes">Practicar</a>
+    <a href="#nota" data-sec="nota" class="solo-psico">Tu nota</a>
+    <a href="#fisicas" data-sec="fisicas" class="solo-psico">Pruebas físicas</a>
     <div class="nav-grupo">
       <button type="button" class="nav-abre" id="nav-analisis-b" aria-expanded="false" aria-controls="nav-analisis">Análisis <svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1.5 3.5 5 7l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
       <div class="nav-menu" id="nav-analisis" hidden>
@@ -483,7 +524,7 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
   <p class="cuenta" id="h-cuenta" hidden></p>
   <div class="kpis" id="kpis"></div>
   <div class="panel" style="margin-top:14px">
-    <h3 style="margin-bottom:10px">Lo que dicen los datos</h3>
+    <h3 style="margin-bottom:10px" id="h-claves">Lo que dicen los datos</h3>
     <ol class="takeaways" id="takeaways"></ol>
   </div>
   <nav class="seguir" aria-label="Por dónde seguir">
@@ -554,6 +595,7 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
     </div>
     <div class="jg-meta" aria-hidden="true"><i id="jg-meta"></i></div>
     <p class="note" id="jg-tag"></p>
+    <div id="jg-extra"></div>
     <h3 class="jg-q" id="jg-q"></h3>
     <div class="jg-ops" id="jg-ops" role="group" aria-label="Respuestas"></div>
     <p class="jg-msg" id="jg-msg" aria-live="assertive"></p>
@@ -683,6 +725,60 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
   </div>
 </section>
 
+<!-- Tropa y Marinería: calculadora de nota y pruebas físicas (en las demás oposiciones se quitan al cargar) -->
+<section id="nota" class="solo-psico">
+  <header><h2>Calcula tu nota</h2>
+  <p class="ink2">Tus méritos (concurso) y tus aciertos en la prueba de aptitudes (oposición), con el baremo de la convocatoria. Se guarda en este navegador.</p></header>
+  <div class="grid2">
+    <form class="panel nt-form" id="nt-form" novalidate>
+      <h3>Tus méritos</h3>
+      <label for="nt-carne">Permiso de conducir (cuenta el más alto)<select id="nt-carne">
+        <option value="0">Ninguno o solo A</option><option value="3">B</option><option value="4">B+E</option><option value="5">C1</option><option value="6">C1+E</option>
+        <option value="7">C</option><option value="8">C+E</option><option value="9">D1, D o D+E</option></select></label>
+      <label for="nt-ingles">Inglés (cuenta el nivel más alto)<select id="nt-ingles">
+        <option value="0">Sin acreditar</option><option value="3">B1 o SLP 1.1.1.1</option><option value="5">B2 o SLP 2.2.2.2</option><option value="8">C1, C2 o SLP 3.3.3.3</option></select></label>
+      <label for="nt-titulo">Titulación (cuenta la más alta)<select id="nt-titulo">
+        <option value="0">Sin ESO</option><option value="6">ESO</option><option value="16">Bachiller, Técnico de Grado Medio o superior</option>
+        <option value="30">Técnico de Grado Medio de interés para la plaza que pides</option></select></label>
+      <label class="check" for="nt-deporte"><input type="checkbox" id="nt-deporte"> Deportista de alto nivel en los últimos cinco años</label>
+      <details class="como"><summary>Méritos militares (si ya has servido)</summary>
+        <div class="nt-mil">
+          <label for="nt-empleo">Empleo<select id="nt-empleo"><option value="0">Ninguno</option><option value="0.25">Reservista voluntario</option><option value="1">Soldado o marinero</option><option value="2">Cabo o superior</option></select></label>
+          <label for="nt-recomp">Recompensa más alta<select id="nt-recomp"><option value="0">Ninguna</option><option value="0.25">Mención honorífica</option><option value="0.5">Citación como distinguido</option>
+            <option value="1.5">Cruz al Mérito, distintivo blanco</option><option value="1.75">Cruz al Mérito, distintivo azul o amarillo</option><option value="2">Cruz al Mérito, distintivo rojo</option></select></label>
+          <label for="nt-misiones">Misiones en el exterior (de 2 meses o más)<input type="number" id="nt-misiones" min="0" max="20" value="0" inputmode="numeric"></label>
+          <label for="nt-anos">Años de servicio<input type="number" id="nt-anos" min="0" max="40" value="0" inputmode="numeric"></label>
+        </div></details>
+    </form>
+    <div class="panel nt-res">
+      <h3>Prueba de aptitudes</h3>
+      <label for="nt-aciertos">Porcentaje de aciertos que esperas<input type="range" id="nt-aciertos" min="0" max="100" step="1" value="60"></label>
+      <p class="nt-pct"><b id="nt-pct-v">60 %</b> <button type="button" id="nt-mi-media" hidden>Usar mi media de simulacros</button></p>
+      <dl class="nt-cifras">
+        <div><dt>Méritos (concurso)</dt><dd><b id="nt-co">0</b> de 40 puntos</dd><dd class="note" id="nt-co10"></dd></div>
+        <div><dt>Prueba (oposición)</dt><dd><b id="nt-op">6,00</b> de 10</dd></div>
+        <div class="nt-final"><dt>Nota final estimada</dt><dd><b id="nt-pf">0</b> de 10</dd></div>
+      </dl>
+      <p class="note" id="nt-aviso"></p>
+    </div>
+  </div>
+  <details class="como"><summary>Cómo se calcula</summary><p>Los méritos generales y académicos suman como mucho 36 puntos, y los militares, 4: en total, hasta 40, que se pasan a una escala de 0 a 10. Tus aciertos en la prueba también se pasan a 0–10. Según las guías de preparación, la nota final pondera un 70 % la prueba y un 30 % los méritos; la fórmula exacta y el baremo completo están en la convocatoria (BOE-A-2026-436, base 8.3 y apéndice 8). Los deportistas de alto nivel suman 30 puntos, no 3, en las plazas de deportes olímpicos. Es una estimación: la nota de corte depende de cada plaza y de cuántos se presenten.</p></details>
+</section>
+
+<section id="fisicas" class="solo-psico">
+  <header><h2>Pruebas físicas</h2>
+  <p class="ink2">Son eliminatorias: hay que llegar a la marca en las cuatro. Escribe tus marcas y comprueba si llegas.</p></header>
+  <div class="panel">
+    <div class="controls fs-sexo" role="radiogroup" aria-label="Marcas para">
+      <label class="check" for="fs-h"><input type="radio" name="fs-sexo" id="fs-h" value="h" checked> Hombres</label>
+      <label class="check" for="fs-m"><input type="radio" name="fs-sexo" id="fs-m" value="m"> Mujeres</label>
+    </div>
+    <div class="fs-lista" id="fs-lista"></div>
+    <p class="fs-total" id="fs-total" aria-live="polite"></p>
+  </div>
+  <p class="note" id="fs-fuente"></p>
+</section>
+
 <section id="banco">
   <header><h2>Banco de preguntas</h2>
   <p class="ink2">Todas las preguntas extraídas, con su tema asignado. Filtra para repasar un tema concreto a lo largo de los años. Las que tienen plantilla oficial muestran la respuesta al pulsar «Ver respuesta». Parte del texto procede de OCR y puede tener erratas.</p></header>
@@ -704,14 +800,14 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
   <header><h2>Método, límites y fuentes</h2></header>
   <div id="metodo-body" style="display:grid;gap:18px"></div>
 </section>
-<footer><span id="pie"></span></footer>
+<footer><span id="pie"></span><span>Web independiente: no está vinculada a ninguna administración ni tribunal de oposiciones.</span></footer>
 </div>
 <div class="tip" id="tip" hidden></div>
 
-<script>window.VERSION = "3db63053b3";</script>
-<script src="vendor/supabase.js?v=3db63053b3"></script>
-<script src="config.js?v=3db63053b3"></script>
-<script src="cuenta.js?v=3db63053b3"></script>
-<script src="cargador.js?v=3db63053b3"></script>
+<script>window.VERSION = "641e932218";</script>
+<script src="vendor/supabase.js?v=641e932218"></script>
+<script src="config.js?v=641e932218"></script>
+<script src="cuenta.js?v=641e932218"></script>
+<script src="cargador.js?v=641e932218"></script>
 </body>
 </html>
