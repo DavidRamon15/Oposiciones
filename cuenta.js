@@ -59,6 +59,9 @@
     },
     alBorrarCurso() { if (!PERFIL || !op()) return; clearTimeout(cursoT); cursoT = null; cursoDatos = null;
       sb.from("cursos").delete().eq("usuario", PERFIL.id).eq("oposicion", op()).then(() => {}); },
+    // marcas de las pruebas físicas: un día de entrenamiento cada vez
+    alGuardarMarcas(d) { if (PERFIL && op()) subirMarcas({...d, usuario: PERFIL.id, oposicion: op()}); },
+    alBorrarMarcas(fecha) { if (PERFIL && op()) subirMarcas({borrar: fecha, usuario: PERFIL.id, oposicion: op()}); },
     alBorrarProgreso() { if (PERFIL && op()) sb.rpc("borrar_progreso", {p_usuario: PERFIL.id, p_oposicion: op()}).then(({error}) => error ? aviso(mensaje(error), "error") : aviso("Progreso borrado de tu cuenta")); },
   };
   async function subirCurso() {
@@ -95,6 +98,53 @@
     setPend(resto); reintentando = false;
     const n = l.length - resto.length;
     if (n) aviso(n === 1 ? "Se ha guardado un examen que estaba pendiente" : `Se han guardado ${n} exámenes que estaban pendientes`, "ok");
+  }
+
+  // marcas físicas: lo que no llega a la nube (sin conexión) se apunta y se reintenta al volver a entrar
+  const PENDM = "cu-marcas-pendientes";
+  const pendM = () => { try { return JSON.parse(localStorage.getItem(PENDM)) || []; } catch (e) { return []; } };
+  const setPendM = l => { try { localStorage.setItem(PENDM, JSON.stringify(l)); } catch (e) { /* sin almacenamiento */ } };
+  async function subirMarcas(x, reintento = false) {
+    const {error} = x.borrar
+      ? await sb.rpc("borrar_marcas", {p_usuario: x.usuario, p_oposicion: x.oposicion, p_fecha: x.borrar})
+      : await sb.rpc("registrar_marcas", {p_usuario: x.usuario, p_oposicion: x.oposicion, p_fecha: x.fecha, p_marcas: x.marcas});
+    if (error) {
+      if (!reintento && PERFIL?.id === x.usuario) setPendM([...pendM(), x]);
+      if (!reintento) aviso("No se pudieron guardar las marcas en tu cuenta: " + mensaje(error) + " Quedan en este dispositivo y se reintentará al volver a abrir la web.", "error");
+      return false;
+    }
+    if (!reintento) aviso(x.borrar ? "Marcas borradas de tu cuenta" : "Marcas guardadas en tu cuenta", "ok");
+    return true;
+  }
+  async function cargarMarcas() {
+    if (!window.FISICAS) return;
+    window.FISICAS.recargar();   // la copia local de esta cuenta, mientras llega la de la nube
+    const l = pendM(), resto = [];
+    for (const x of l) { if (x.usuario !== PERFIL.id || x.oposicion !== op() || !(await subirMarcas(x, true))) resto.push(x); }
+    if (l.length) setPendM(resto);
+    let filas; try { filas = await todas(() => sb.from("marcas").select("prueba, valor, fecha").eq("usuario", PERFIL.id).eq("oposicion", op()).order("fecha")); }
+    catch (e) { aviso("No se pudieron cargar tus marcas: " + mensaje(e) + " Se muestra la última copia de este dispositivo.", "error"); return; }
+    const dias = {};
+    filas.forEach(f => { (dias[f.fecha] = dias[f.fecha] || {fecha: f.fecha, m: {}}).m[f.prueba] = +f.valor; });
+    // lo que aún está pendiente de subir se mantiene encima de lo de la nube
+    resto.filter(x => x.usuario === PERFIL.id && x.oposicion === op()).forEach(x => { if (x.borrar) delete dias[x.borrar];
+      else x.marcas.forEach(m => { (dias[x.fecha] = dias[x.fecha] || {fecha: x.fecha, m: {}}).m[m.prueba] = m.valor; }); });
+    window.FISICAS.poner(Object.values(dias));
+    if (!filas.length) ofrecerImportarMarcas();
+  }
+  function ofrecerImportarMarcas() {
+    let local; try { local = JSON.parse(localStorage.getItem(LS + "-fisicas-hist")) || []; } catch (e) { local = []; }
+    if (!Array.isArray(local) || !local.length) return;
+    const c = window.FISICAS.invitar(`<div class="cu-invitacion"><p>En este navegador tienes marcas de <b>${pl(local.length, "día", "días")}</b> de entrenamiento guardadas sin cuenta. ¿Las pasamos a tu cuenta?</p>
+      <span class="acc"><button class="primary" id="cu-impm-si">Pasarlas a mi cuenta</button><button id="cu-impm-no">No, empezar de cero</button></span></div>`);
+    c.querySelector("#cu-impm-no").onclick = () => { c.innerHTML = ""; };
+    c.querySelector("#cu-impm-si").onclick = async e => { e.currentTarget.disabled = true;
+      let n = 0;
+      for (const d of local) { const marcas = Object.entries(d.m || {}).map(([prueba, valor]) => ({prueba, valor}));
+        if (marcas.length && await subirMarcas({usuario: PERFIL.id, oposicion: op(), fecha: d.fecha, marcas}, true)) n++; }
+      c.innerHTML = "";
+      aviso(n === local.length ? `${pl(n, "día", "días")} de marcas pasados a tu cuenta` : `Se pasaron ${n} de ${local.length} días; vuelve a intentarlo más tarde`, n === local.length ? "ok" : "error");
+      cargarMarcas(); };
   }
 
   // ---------- interfaz común ----------
@@ -305,12 +355,12 @@
     if (!PERFIL.activo) { aviso("Tu cuenta está desactivada. Habla con el administrador de la web.", "error"); await sb.auth.signOut(); return; }
     LS_SUF = "-" + PERFIL.id;
     pintarBoton();
-    if (op()) { await cargarProgreso(); await ofrecerImportar(); await traerCurso(); reintentarPendientes(); }
+    if (op()) { await cargarProgreso(); await ofrecerImportar(); await traerCurso(); reintentarPendientes(); await cargarMarcas(); }
     pintarTareas(); pintarRoles();
   }
   function alSalir() {
     PERFIL = null; EMAIL = ""; LS_SUF = "";
-    if (op()) { HIST = loadHist(); drawHist(); drawCurso(); syncConfig(); }
+    if (op()) { HIST = loadHist(); drawHist(); drawCurso(); syncConfig(); window.FISICAS?.recargar(); window.FISICAS?.invitar(""); }
     q("#cu-tareas")?.remove(); q("#alumnos")?.remove(); q("#administracion")?.remove();
     document.querySelectorAll(".cu-navrol").forEach(a => a.remove());
     pintarBoton();
@@ -426,10 +476,12 @@
   // ficha de un opositor: evolución, acierto por tema, tareas y notas
   async function ficha(a, cont, {puedeQuitar = false} = {}) {
     cont.innerHTML = `<div class="panel cu-ficha"><p class="note">Cargando la ficha…</p></div>`;
-    const [its, ts, ns] = await Promise.all([
+    const [its, ts, ns, ms] = await Promise.all([
       sb.from("intentos").select("id, oposicion, tipo, n, ok, ko, bl, nota, escala, segundos, por_tema, creado").eq("usuario", a.id).order("creado", {ascending: false}).limit(200),
       sb.from("tareas").select("*").eq("alumno", a.id).order("creada", {ascending: false}).limit(50),
-      sb.from("notas").select("id, texto, creada, preparador").eq("alumno", a.id).order("creada", {ascending: false}).limit(20)]);
+      sb.from("notas").select("id, texto, creada, preparador").eq("alumno", a.id).order("creada", {ascending: false}).limit(20),
+      sb.from("marcas").select("oposicion, prueba, valor, fecha").eq("usuario", a.id).order("fecha", {ascending: false}).limit(1000)]);
+    // si falla la consulta de marcas, la ficha sale igual, sin el apartado de pruebas físicas
     const err = its.error || ts.error || ns.error;
     if (err) { cont.innerHTML = `<div class="panel"><p class="cu-estado error">${h(mensaje(err))}</p></div>`; return; }
     const intentos = its.data;
@@ -452,6 +504,7 @@
         <div><h4>Acierto por tema, los más flojos primero</h4>${peores.length ? `<ul class="cu-temas">${peores.map(p => `<li><span>${h(nombres[p.t] || p.t)}</span><span class="cu-barra"><i style="width:${Math.round(100 * p.ac)}%"></i></span><span class="num">${Math.round(100 * p.ac)} % de ${p.n}</span></li>`).join("")}</ul>` : `<p class="note">Aún no hay bastantes preguntas por tema.</p>`}</div></div>
         <h4>Exámenes</h4><div class="scroll"><table class="cu-tabla"><thead><tr><th>Fecha</th><th>Tipo</th><th class="num">Nota</th><th class="num">Aciertos</th><th class="num">Fallos</th><th class="num">En blanco</th><th class="num">Tiempo</th></tr></thead><tbody>${delOp.slice(0, 15).map(i => `<tr><td>${fecha(i.creado)}</td><td>${h(i.tipo)}</td><td class="num"><b>${fmt(+i.nota, 1)}</b> / ${i.escala}</td><td class="num">${i.ok}</td><td class="num">${i.ko}</td><td class="num">${i.bl}</td><td class="num">${i.segundos == null ? "—" : i.segundos < 60 ? "menos de 1 min" : Math.round(i.segundos / 60) + " min"}</td></tr>`).join("")}</tbody></table></div>`
         : `<p class="note">Todavía no ha hecho ningún examen con su cuenta.</p>`}
+      ${fichaFisicas(opF, ms.error ? [] : ms.data)}
       <div class="grid2"><div><h4>Tareas</h4>${ts.data.length ? `<ul class="cu-lista">${ts.data.map(t => `<li><span><b>${MODOS[t.modo]}${t.modo === "tema" && t.tema ? ": " + h(window.INDICE?.[t.oposicion]?.temas?.[t.tema] || t.tema) : ""}</b><br><span class="note">${t.completada ? "Hecha el " + fecha(t.completada) + (t.intento ? notaDe(intentos, t.intento) : "") : t.fecha_limite ? "Para el " + fecha(t.fecha_limite + "T12:00") : "Pendiente, sin fecha"}</span></span>${!t.completada && (t.preparador === PERFIL.id || PERFIL.rol === "admin") ? `<button data-borrar-t="${t.id}">Quitar</button>` : ""}</li>`).join("")}</ul>` : `<p class="note">Sin tareas.</p>`}</div>
         <div><h4>Notas para el alumno</h4><form id="fi-nota" class="cu-form" novalidate><label for="fi-nota-t">Nueva nota (la verá en su página de exámenes)<textarea id="fi-nota-t" maxlength="2000" rows="3"></textarea></label><p class="cu-estado" role="alert"></p><div class="cu-acciones"><button type="submit">Enviar nota</button></div></form>
           ${ns.data.length ? `<ul class="cu-notas">${ns.data.map(n => `<li><p>${h(n.texto)}</p><span class="note">${fecha(n.creada)}</span>${n.preparador === PERFIL.id || PERFIL.rol === "admin" ? ` <button class="cu-enlace" data-borrar-n="${n.id}">Borrar</button>` : ""}</li>`).join("")}</ul>` : ""}</div></div></div>`;
@@ -470,6 +523,21 @@
       if (!texto) return estadoForm(f, "Escribe la nota.");
       ocupado(f, true); const {error} = await sb.from("notas").insert({preparador: PERFIL.id, alumno: a.id, texto}); ocupado(f, false);
       if (error) return estadoForm(f, mensaje(error)); aviso("Nota enviada", "ok"); repintar(); };
+  }
+  // última y mejor marca de cada prueba física (de la oposición de la ficha o, si ahí no tiene, de la última que entrenó)
+  function fichaFisicas(opF, filas) {
+    const opM = filas.some(f => f.oposicion === opF) ? opF : filas[0]?.oposicion;
+    const FS = window.INDICE?.[opM]?.cfg?.fisicas, delOp = filas.filter(f => f.oposicion === opM);
+    if (!FS || !delOp.length) return "";
+    const txt = (p, v) => p.unidad === "min" ? `${Math.floor(v / 60)}:${String(Math.round(v % 60)).padStart(2, "0")}` : p.unidad === "rep" ? `${fmt(v)} rep.` : `${fmt(v, Math.round(v * 100) % 100 ? (Math.round(v * 100) % 10 ? 2 : 1) : 0)} s`;
+    const mejor = (p, a, b) => p.sentido === "mas" ? a >= b : a <= b;
+    const filasP = FS.pruebas.map(p => { const ms = delOp.filter(f => f.prueba === p.k).map(f => ({v: +f.valor, fecha: f.fecha}));
+      if (!ms.length) return "";
+      const ult = ms[0], top = ms.reduce((r, m) => mejor(p, m.v, r.v) && m.v !== r.v ? m : r, ms[0]);
+      return `<tr><td>${h(p.nombre)}</td><td class="num"><b>${txt(p, ult.v)}</b> <span class="note">${fecha(ult.fecha + "T12:00")}</span></td><td class="num">${txt(p, top.v)} <span class="note">${fecha(top.fecha + "T12:00")}</span></td><td class="num">${ms.length}</td></tr>`; }).join("");
+    const dias = new Set(delOp.map(f => f.fecha)).size;
+    return `<h4>Pruebas físicas${opM !== opF ? ` (${h(nombreOp(opM))})` : ""}</h4><p class="note">${pl(dias, "día", "días")} de entrenamiento apuntados.</p>
+      <div class="scroll"><table class="cu-tabla"><thead><tr><th>Prueba</th><th class="num">Última</th><th class="num">Mejor</th><th class="num">Veces</th></tr></thead><tbody>${filasP}</tbody></table></div>`;
   }
   const notaDe = (its, id) => { const i = its.find(x => x.id === id); return i ? `: ${fmt(+i.nota, 1)} / ${i.escala}` : ""; };
   function grafNotas(it) {

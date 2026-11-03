@@ -3,7 +3,7 @@ const OPS = window.OPS;
 /* Psicotécnicos de práctica para Tropa y Marinería: los 7 factores de la prueba de aptitudes (verbal, numérico,
    espacial, mecánico, perceptivo, memoria y razonamiento abstracto). Las preguntas no se copian de ningún sitio: se
    generan con reglas, así que la solución es segura por construcción. Cada una sale siempre igual de su identificador
-   («T-NUM-0042»), y así el progreso, los fallos, el repaso y el juego funcionan como con las preguntas de examen.
+   («T2-NUM-0042»), y así el progreso, los fallos, el repaso y el juego funcionan como con las preguntas de examen.
    construir.py inserta este archivo en la plantilla; expone PSICO.banco(n) y PSICO.FACTORES. */
 const PSICO = (() => {
   const FACTORES = {NUM: "Numérico", VER: "Verbal", ESP: "Espacial", MEC: "Mecánico", PER: "Perceptivo", MEM: "Memoria", ABS: "Razonamiento abstracto"};
@@ -23,8 +23,43 @@ const PSICO = (() => {
     const l = R.mezcla(o); return {o: l.map(String), r: l.indexOf(buena)}; }
   const fmt = n => Number(n).toLocaleString("es-ES");
 
-  /* ---------- numérico ---------- */
-  function numerico(R) { const t = R.ri(0, 7);
+  const dec = (c, d = 2) => (c / 100).toLocaleString("es-ES", {minimumFractionDigits: d, maximumFractionDigits: d});   // céntimos → «3,75»
+  /* ---------- numérico: cálculo de cabeza, como en la prueba (sin papel ni calculadora) ---------- */
+  const ent = n => n < 0 ? `−${-n}` : String(n), par = n => n < 0 ? `(−${-n})` : String(n);   // enteros con el signo menos tipográfico
+  const SUP = "⁰¹²³⁴⁵⁶⁷⁸⁹";
+  function numerico(R) { const t = R.ri(0, 15);
+    if (t === 12) {   // jerarquía: primero multiplicaciones y divisiones
+      const a = R.ri(2, 30), b = R.ri(2, 9), c = R.ri(2, 9), e = R.ri(2, 9), d = e * R.ri(2, 9), v = a + b * c - d / e;
+      if (v <= 0) return numerico(R);
+      return {e: `Resuelve: ${a} + ${b} × ${c} − ${d} ÷ ${e}`, ...opciones(R, v, R.mezcla([(a + b) * c - d / e, v + 1, v - 1, v + 2, v + 10].filter(x => x > 0))),
+        exp: `Primero productos y divisiones: ${b} × ${c} = ${b * c} y ${d} ÷ ${e} = ${d / e}. Después, ${a} + ${b * c} − ${d / e} = ${v}.`}; }
+    if (t === 13) {   // enteros con signo
+      const nz = () => { const x = R.ri(-20, 20); return x || 7; }, a = nz(), b = nz(), c = nz(), v = a + b - c;
+      return {e: `Resuelve: ${par(a)} + ${par(b)} − ${par(c)}`, ...opciones(R, ent(v), R.mezcla([v + 2 * c, -v, v + 1, v - 1, v + 10, v - 10].filter(x => x !== v).map(ent))),
+        exp: `Restar un número es sumar su opuesto: ${par(a)} + ${par(b)} ${c < 0 ? `+ ${-c}` : `− ${c}`} = ${ent(v)}.`}; }
+    if (t === 14) {   // decimales: producto o cociente, en décimas para no arrastrar redondeos
+      if (R.r() < .5) { const a = R.ri(12, 95), b = R.ri(2, 9), v = a * b;
+        return {e: `Resuelve: ${dec(a * 10, 1)} × ${b}`, ...opciones(R, dec(v * 10, 1), R.mezcla([v + b, v - b, v * 10, v + 10, v - 1].filter(x => x > 0).map(x => dec(x * 10, 1)))), exp: `${dec(a * 10, 1)} × ${b} = ${dec(v * 10, 1)}.`}; }
+      const r = R.ri(2, 12), d = R.ri(2, 9), dividendo = r * d;   // en décimas: (r·d)/10 ÷ d/10 = r
+      return {e: `Resuelve: ${dec(dividendo * 10, 1)} ÷ ${dec(d * 10, 1)}`, ...opciones(R, r, R.mezcla([r * 10, r + 1, r - 1, r * 100, r + 2].filter(x => x > 0))),
+        exp: `${dec(dividendo * 10, 1)} ÷ ${dec(d * 10, 1)} es lo mismo que ${dividendo} ÷ ${d} = ${r}.`}; }
+    if (t === 15) {   // potencias y raíces exactas
+      if (R.r() < .55) { const b = R.ri(2, 9), n = b === 2 ? R.ri(3, 6) : b === 3 ? R.ri(2, 4) : b <= 5 ? R.ri(2, 3) : 2, v = b ** n;
+        return {e: `Resuelve: ${b}${SUP[n]}`, ...opciones(R, v, R.mezcla([b * n, v + b, v - b, b ** (n - 1), v + 1].filter(x => x > 0 && x !== v))), exp: `${b}${SUP[n]} = ${Array(n).fill(b).join(" × ")} = ${v}.`}; }
+      const r = R.ri(4, 20), v = r * r;
+      return {e: `Resuelve: √${v}`, ...opciones(R, r, R.mezcla([r + 1, r - 1, r + 2, v / 2, r * 2].filter(x => Number.isInteger(x) && x > 0))), exp: `${r} × ${r} = ${v}, así que √${v} = ${r}.`}; }
+    if (t === 7) { const resta = R.r() < .6, a = resta ? R.ri(2000, 9899) : R.ri(1000, 7999), b = resta ? R.ri(1001, a - 101) : R.ri(1001, 9999 - a), v = resta ? a - b : a + b;
+      return {e: `Resuelve: ${a} ${resta ? "−" : "+"} ${b}`, ...opciones(R, v, R.mezcla([v + 10, v - 10, v + 100, v - 100, v + 1, v - 1])), exp: `${a} ${resta ? "−" : "+"} ${b} = ${v}.`}; }
+    if (t === 8) { const a = R.ri(12, 98), b = R.ri(3, 9), p = a * b;
+      if (R.r() < .5) return {e: `Resuelve: ${a} × ${b}`, ...opciones(R, p, R.mezcla([p + b, p - b, p + 10, p - 10, p + 1])), exp: `${a} × ${b} = ${p}.`};
+      return {e: `Resuelve: ${p} ÷ ${b}`, ...opciones(R, a, R.mezcla([a + 1, a - 1, a + 2, a - 2, a + 10])), exp: `${p} ÷ ${b} = ${a}, porque ${a} × ${b} = ${p}.`}; }
+    if (t === 9) {   // decimales, en céntimos para no arrastrar errores de redondeo
+      const a = R.ri(11, 99) * 10, b = R.ri(105, 995), resta = R.r() < .4 && a > b, v = resta ? a - b : a + b;
+      return {e: `Resuelve: ${dec(a, 1)} ${resta ? "−" : "+"} ${dec(b)}`, ...opciones(R, dec(v), R.mezcla([v + 10, v - 10, v + 100, v - 100, v + 1].filter(x => x > 0).map(x => dec(x)))), exp: `${dec(a)} ${resta ? "−" : "+"} ${dec(b)} = ${dec(v)}.`}; }
+    if (t === 10) { const q = R.pick([3, 4, 5, 8, 10]), p = R.ri(1, q - 1), base = q * R.ri(3, 15), v = base * p / q;
+      if (q % p === 0 && p > 1) return numerico(R);   // 2/4, 2/8…: fracciones sin simplificar
+      return {e: `¿Cuánto ${p === 1 ? "es un" : "son " + ["", "", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve"][p]} ${{3: "tercio", 4: "cuarto", 5: "quinto", 8: "octavo", 10: "décimo"}[q]}${p > 1 ? "s" : ""} de ${base}?`, ...opciones(R, v, R.mezcla([v + base / q, v - base / q, base / q, base - v, v + 1].filter(x => x > 0 && Number.isInteger(x)).concat([v + 2, v * 2]))),
+        exp: `${base} ÷ ${q} = ${base / q}; × ${p} = ${v}.`}; }
     if (t <= 3) {   // series
       let s, sig, regla;
       if (t === 0) { const a = R.ri(2, 40), d = R.pick([3, 4, 5, 6, 7, 8, 9, 11, 12, 15]) * R.pick([1, 1, -1]); s = [0, 1, 2, 3, 4].map(i => a + i * d + (d < 0 ? 80 : 0)); sig = s[4] + d; regla = `cada número ${d > 0 ? "suma" : "resta"} ${Math.abs(d)}`; }
@@ -39,7 +74,7 @@ const PSICO = (() => {
     if (t === 5) { const c = R.ri(2, 6), u = R.ri(2, 9), n = R.ri(3, 12); if (n === c) return numerico(R);
       const total = c * u, v = n * u, cosa = R.pick([["cajas", "cuestan", "€"], ["paquetes", "pesan", "kg"], ["botellas", "contienen", "litros"]]);
       return {e: `Si ${c} ${cosa[0]} ${cosa[1]} ${total} ${cosa[2]}, ¿cuánto ${cosa[1]} ${n} ${cosa[0]}?`, ...opciones(R, v, R.mezcla([v + u, v - u, total + n, v + 1, v * 2])), exp: `Cada una: ${total} / ${c} = ${u}; ${n} × ${u} = ${v} ${cosa[2]}.`}; }
-    if (t === 6) { const a = R.ri(12, 89), b = R.ri(11, 69), c = R.ri(5, 39), v = a + b - c;
+    if (t === 6) { const a = R.ri(12, 89), b = R.ri(11, 69), c = R.ri(5, Math.min(39, a + b - 2)), v = a + b - c;
       return {e: `Calcula de cabeza: ${a} + ${b} − ${c}`, ...opciones(R, v, R.mezcla([v + 10, v - 10, v + 1, v - 1, v + 2])), exp: `${a} + ${b} = ${a + b}; ${a + b} − ${c} = ${v}.`}; }
     const km = R.pick([30, 40, 45, 60, 75, 90]), min = R.pick([15, 20, 30, 45, 60, 90]), h = R.pick([2, 3, 4]); const v = km * 60 * h / min;
     if (!Number.isInteger(v)) return numerico(R);
@@ -66,7 +101,72 @@ const PSICO = (() => {
   const GRUPOS = {frutas: ["manzana", "pera", "ciruela", "melocotón", "naranja", "uva"], herramientas: ["martillo", "destornillador", "alicates", "llave inglesa", "sierra"],
     colores: ["azul", "verde", "amarillo", "violeta", "granate"], instrumentos: ["guitarra", "violín", "trompeta", "tambor", "flauta"],
     prendas: ["camisa", "pantalón", "chaqueta", "jersey", "abrigo"], planetas: ["Marte", "Venus", "Júpiter", "Saturno", "Mercurio"], peces: ["sardina", "merluza", "atún", "trucha", "lenguado"]};
-  function verbal(R) { const t = R.ri(0, 3);
+  // la palabra bien escrita y tres faltas típicas (b/v, h, g/j, ll/y, c/z/s, x, tildes) que no son palabras
+  const ORTOGRAFIA = [["vehículo", "veículo", "behículo", "vehícolo"], ["avión", "abión", "havión", "avion"], ["ejército", "egército", "ejérsito", "hejército"],
+    ["herramienta", "erramienta", "herramyenta", "herramienda"], ["gobierno", "govierno", "gobyerno", "jobierno"], ["prohibir", "proibir", "prohivir", "prohibír"],
+    ["escribir", "escrivir", "escribír", "eskribir"], ["vacío", "bacío", "vazío", "vaccío"], ["huevo", "uevo", "huebo", "hüevo"], ["jirafa", "girafa", "jiraffa", "jirafha"],
+    ["ballena", "bayena", "vallena", "ballenna"], ["cerveza", "cerbeza", "cervesa", "zerveza"], ["horizonte", "orizonte", "horisonte", "horizonnte"],
+    ["exhibir", "exibir", "exhivir", "eshibir"], ["viaje", "viage", "biaje", "vihaje"], ["garaje", "garage", "garrage", "garraje"], ["coger", "cojer", "coguer", "koger"],
+    ["elegir", "elejir", "eleguir", "helegir"], ["reloj", "relog", "rreloj", "relox"], ["llave", "yave", "llabe", "yabe"], ["joven", "joben", "jóven", "goven"],
+    ["examen", "exámen", "esamen", "egsamen"], ["bombero", "vombero", "bonbero", "bomvero"], ["subir", "suvir", "subír", "zubir"], ["hielo", "yelo", "ielo", "hiello"],
+    ["nervioso", "nerbioso", "nervyoso", "nerviozo"], ["absorber", "absorver", "avsorber", "asorber"], ["cabeza", "cavesa", "cabesa", "cabezza"],
+    ["general", "jeneral", "generál", "henéral"], ["hombre", "ombre", "honbre", "hombrre"], ["inmediato", "imediato", "inmediáto", "hinmediato"],
+    ["exceso", "eceso", "exseso", "excesso"], ["aprovechar", "aprobechar", "haprovechar", "aprovecar"], ["observar", "obserbar", "ovservar", "oserbar"]];
+  const PALABRAS = ["barco", "cabo", "soldado", "tanque", "mochila", "fusil", "brújula", "cantimplora", "linterna", "mapa", "radio", "casco", "bota", "cuartel", "guardia",
+    "puente", "río", "monte", "camión", "avión", "fragata", "patrulla", "misión", "sargento", "teniente", "capitán", "coronel", "bandera", "desfile", "uniforme", "marcha",
+    "campamento", "refugio", "trinchera", "vigía", "escudo", "ancla", "puerto", "muelle", "brigada", "batallón", "cadete", "cañón", "carro", "galón", "medalla"];
+  const alfa = (a, b) => a.localeCompare(b, "es", {sensitivity: "base"});
+  const letrasDe = w => [...w.normalize("NFD").replace(/[\u0301]/g, "").normalize("NFC").toUpperCase()].sort().join("");
+  // [frase con hueco, la que encaja, tres que no]
+  const HUECOS = [
+    ["El soldado limpió su ___ antes de la revista.", "fusil", ["nube", "sonrisa", "semana"]],
+    ["Para no perderse en el monte, llevaba un mapa y una ___.", "brújula", ["cuchara", "almohada", "corbata"]],
+    ["El barco echó el ___ al llegar al puerto.", "ancla", ["tejado", "sombrero", "libro"]],
+    ["El soldado se puso el ___ para protegerse la cabeza.", "casco", ["calcetín", "cinturón", "guante"]],
+    ["El médico le recetó un ___ para la fiebre.", "medicamento", ["martillo", "paraguas", "billete"]],
+    ["La sirena sonó y todos salieron ___ del edificio.", "rápidamente", ["dulcemente", "redondamente", "amargamente"]],
+    ["Si llueve, coge el ___ para no mojarte.", "paraguas", ["tenedor", "reloj", "cepillo"]],
+    ["El cocinero ___ la comida para toda la compañía.", "preparó", ["pintó", "durmió", "nadó"]],
+    ["Al anochecer encendieron una ___ para ver el camino.", "linterna", ["almohada", "cuchara", "corbata"]],
+    ["El piloto aterrizó el ___ sin problemas.", "avión", ["submarino", "tractor", "camión"]],
+    ["El agua hierve a cien grados y se ___ a cero.", "congela", ["enciende", "oxida", "dobla"]],
+    ["Hay que beber agua para no ___ durante el ejercicio.", "deshidratarse", ["mojarse", "dormirse", "peinarse"]],
+    ["Los bomberos ___ el incendio en una hora.", "apagaron", ["encendieron", "compraron", "cantaron"]],
+    ["El capitán dio la ___ de avanzar.", "orden", ["ventana", "silla", "cuchara"]],
+    ["Como estaba muy cansado, se quedó ___ en el sofá.", "dormido", ["hambriento", "veloz", "lejano"]],
+    ["El tren llegó tarde porque había nieve en las ___.", "vías", ["nubes", "mesas", "orejas"]],
+    ["Para cruzar el río usaron un ___.", "puente", ["tejado", "armario", "sobre"]],
+    ["La enfermera le puso una ___ en la herida.", "venda", ["corbata", "moneda", "cuchara"]],
+    ["El reloj se paró porque se le acabó la ___.", "pila", ["sopa", "madera", "nube"]],
+    ["En invierno los días son más ___ que en verano.", "cortos", ["largos", "calurosos", "ruidosos"]]];
+  // frases cortas: las falsas cambian de sitio un determinante y su palabra («soldado el»), que nunca es correcto
+  const FRASES = ["el soldado limpia su fusil cada mañana", "la patrulla salió del cuartel al amanecer", "los marineros subieron al barco con sus mochilas",
+    "el sargento revisó las botas de la compañía", "una tormenta obligó a suspender la marcha", "el cocinero preparó la cena para todos",
+    "la fragata navegó toda la noche hacia el puerto", "el capitán leyó la orden en voz alta", "los cadetes corrieron diez kilómetros por el monte",
+    "el conductor aparcó el camión junto al almacén", "la radio dejó de funcionar durante la misión", "el vigía vio una luz en la costa"];
+  const DET = new Set(["el", "la", "los", "las", "un", "una", "su", "sus", "al", "del"]);
+  function verbal(R) { const t = R.ri(0, 8);
+    if (t === 6) { const w = R.pick(PALABRAS), L = letrasDe(w);
+      let rev = w.toUpperCase(); for (let k = 0; k < 20 && (rev === w.toUpperCase() || rev.length < 2); k++) rev = R.mezcla([...w.toUpperCase()]).join("");
+      if (rev === w.toUpperCase()) return verbal(R);
+      const mismas = PALABRAS.filter(x => x !== w && Math.abs(x.length - w.length) <= 1 && letrasDe(x) !== L);
+      if (mismas.length < 3) return verbal(R);
+      return {e: `¿Qué palabra se forma ordenando estas letras? ${rev.split("").join(" ")}`, ...opciones(R, w, R.mezcla(mismas)), exp: `Con esas letras se forma «${w}».`, mono: true}; }
+    if (t === 7) { const [f, bien, mal] = R.pick(HUECOS); return {e: `¿Qué palabra completa la frase? ${f}`, ...opciones(R, bien, mal), exp: `«${f.replace("___", bien)}»`}; }
+    if (t === 8) { const pal = R.pick(FRASES).split(" "), cap = l => { const x = l.join(" "); return x[0].toUpperCase() + x.slice(1) + "."; };
+      const dets = pal.map((x, i) => DET.has(x) && i < pal.length - 1 ? i : -1).filter(i => i >= 0), malas = new Set();
+      for (let k = 0; malas.size < 3 && k < 40; k++) { const l = [...pal], n = R.ri(1, 2);
+        for (const i of R.mezcla(dets).slice(0, n)) [l[i], l[i + 1]] = [l[i + 1], l[i]];
+        if (k % 3 === 2) { const a = R.ri(0, l.length - 1), b = R.ri(0, l.length - 1); [l[a], l[b]] = [l[b], l[a]]; }   // a veces, además, otra palabra fuera de sitio
+        const x = cap(l); if (x !== cap(pal) && dets.some(i => l.join(" ").includes(`${pal[i + 1]} ${pal[i]}`))) malas.add(x); }
+      if (malas.size < 3) return verbal(R);
+      return {e: "¿Qué frase está bien ordenada?", ...opciones(R, cap(pal), [...malas]), exp: `La frase bien ordenada es «${cap(pal)}»`}; }
+    if (t === 4) { const [bien, ...mal] = R.pick(ORTOGRAFIA);
+      return {e: "¿Qué palabra está bien escrita?", ...opciones(R, bien, mal), exp: `Se escribe «${bien}».`}; }
+    if (t === 5) {   // cuatro palabras: la ordenada y tres órdenes que no lo están
+      const l = R.mezcla(PALABRAS).slice(0, 4), ord = [...l].sort(alfa), malas = new Set();
+      while (malas.size < 3) { const m = R.mezcla(ord); if (m.some((x, i) => x !== ord[i])) malas.add(m.join(", ")); }
+      return {e: "¿Qué serie está en orden alfabético?", ...opciones(R, ord.join(", "), [...malas]), exp: `El orden alfabético es ${ord.join(", ")}.`}; }
     if (t === 0 || t === 1) { const lista = t === 0 ? SINONIMOS : ANTONIMOS, g = R.pick(lista), [a, b] = t === 0 ? R.mezcla(g) : (R.r() < .5 ? g : [g[1], g[0]]);
       const otras = R.mezcla(lista.filter(p => p !== g).flat().filter(x => !g.includes(x)));
       return {e: `¿Qué palabra significa ${t === 0 ? "lo mismo" : "lo contrario"} que «${a}»?`, ...opciones(R, b, otras), exp: `«${b}» es ${t === 0 ? "sinónimo" : "antónimo"} de «${a}».`}; }
@@ -91,11 +191,37 @@ const PSICO = (() => {
       const g = new Set(giros(c).map(clave)); if (!giros(espejo(c)).some(m => g.has(clave(m)))) return c; } }
   function dibujaPieza(c, marca) { const n = norma(c), L = 18, w = (Math.max(...n.map(p => p[0])) + 1) * L, h = (Math.max(...n.map(p => p[1])) + 1) * L, ox = (96 - w) / 2, oy = (96 - h) / 2;
     return SVG(96, 96, n.map(([x, y], i) => `<rect x="${ox + x * L}" y="${oy + y * L}" width="${L}" height="${L}" fill="${i === marca ? "#e0573b" : "#3b6fd8"}" stroke="#fff" stroke-width="2"/>`).join(""), "figura"); }
-  function espacial(R) { const c = pieza(R), marca = 0;   // un cuadrado marcado ayuda a seguir el giro
+  // contar cubos apilados: columnas que tocan el suelo y más altas al fondo, para que ninguna quede escondida
+  function cubos(R) {
+    const N = 3, h = Array.from({length: N}, () => Array(N).fill(0));
+    for (let x = 0; x < N; x++) for (let y = 0; y < N; y++) { const tope = Math.min(x ? h[x - 1][y] : 3, y ? h[x][y - 1] : 3); h[x][y] = x + y === 0 ? R.ri(2, 3) : R.ri(Math.max(0, tope - 2), tope); }
+    const total = h.flat().reduce((a, b) => a + b, 0), columnas = h.flat().filter(Boolean).length;
+    if (total < 6 || total > 20 || columnas === total) return cubos(R);
+    const A = 24, B = 13.5, C = 27, P = (x, y, z) => [(x - y) * A, (x + y) * B - z * C], lista = [];
+    for (let x = 0; x < N; x++) for (let y = 0; y < N; y++) for (let z = 0; z < h[x][y]; z++) lista.push([x, y, z]);
+    lista.sort((a, b) => a[0] + a[1] + a[2] - b[0] - b[1] - b[2] || a[2] - b[2]);
+    const pol = (pts, color) => `<polygon points="${pts.map(p => p.map(v => v.toFixed(1)).join(",")).join(" ")}" fill="${color}" stroke="${TINTA}" stroke-width="1.2" stroke-linejoin="round"/>`;
+    const caras = lista.map(([x, y, z]) => pol([P(x, y, z + 1), P(x + 1, y, z + 1), P(x + 1, y + 1, z + 1), P(x, y + 1, z + 1)], "#dfe7f7")
+      + pol([P(x + 1, y, z), P(x + 1, y + 1, z), P(x + 1, y + 1, z + 1), P(x + 1, y, z + 1)], "#7d9be0") + pol([P(x, y + 1, z), P(x + 1, y + 1, z), P(x + 1, y + 1, z + 1), P(x, y + 1, z + 1)], "#3b6fd8")).join("");
+    const ox = N * A + 6, oy = 3 * C + 6, w = 2 * N * A + 12, alto = 2 * N * B + 3 * C + 12;
+    return {e: "¿Cuántos cubos hay en total? Ninguno flota: debajo de cada cubo hay otro cubo o el suelo.", svg: SVG(w, alto, `<g transform="translate(${ox} ${oy})">${caras}</g>`, "cubos apilados"),
+      ...opciones(R, total, R.mezcla([total + 1, total - 1, total + 2, total - 2, columnas, total + 3])), exp: `Hay ${total} cubos: se cuentan también los de abajo, que no se ven pero sostienen a los de encima.`}; }
+  function simetrica(R) { const c = pieza(R), dib = l => dibujaPieza(l, -1), buena = espejo(c), vistos = new Set([clave(buena)]);
+    const malas = R.mezcla(giros(c)).filter(m => { const k = clave(m); return !vistos.has(k) && vistos.add(k); }).slice(0, 3);
+    if (malas.length < 3) return simetrica(R);
+    const fig = [buena, ...malas], orden = R.mezcla([0, 1, 2, 3]), espejoSVG = `<line x1="104" y1="4" x2="104" y2="92" stroke="#e0573b" stroke-width="3" stroke-dasharray="6 4"/>`;
+    return {e: "¿Cómo se ve el modelo reflejado en el espejo (la línea roja)?", svg: dib(c).replace('width="96"', 'width="112"').replace('viewBox="0 0 96 96"', 'viewBox="0 0 112 96"').replace("</svg>", espejoSVG + "</svg>"),
+      osvg: orden.map(i => dib(fig[i])), o: orden.map((_, j) => `Figura ${"ABCD"[j]}`), r: orden.indexOf(0),
+      exp: "En un espejo lo de la izquierda pasa a la derecha y al revés. Las demás son el modelo girado, no reflejado."}; }
+  function espacial(R) { const t = R.r(); if (t < .4) return cubos(R); if (t < .6) return simetrica(R);
+    const c = pieza(R), marca = 0;   // un cuadrado marcado ayuda a seguir el giro
     const conMarca = f => f.map((p, i) => ({p, i})), gira = (l, k) => { let x = l; for (let i = 0; i < k; i++) x = x.map(({p, i}) => ({p: [p[1], -p[0]], i})); return x; };
     const refl = conMarca(c).map(({p, i}) => ({p: [-p[0], p[1]], i})), dib = l => { const n = norma(l.map(x => x.p)), m = l.find(x => x.i === marca).p, mn = [Math.min(...l.map(x => x.p[0])), Math.min(...l.map(x => x.p[1]))];
       const idx = n.findIndex(q => q[0] === m[0] - mn[0] && q[1] === m[1] - mn[1]); return dibujaPieza(l.map(x => x.p), idx); };
-    const k = R.ri(1, 3), buena = gira(conMarca(c), k), malas = R.mezcla([0, 1, 2, 3]).map(j => gira(refl, j));
+    const k = R.ri(1, 3), buena = gira(conMarca(c), k), vistos = new Set([dib(buena)]);
+    // los reflejos girados, sin repetir dibujo (en piezas simétricas dos giros pueden verse iguales)
+    const malas = R.mezcla([0, 1, 2, 3]).map(j => gira(refl, j)).filter(m => { const d = dib(m); return !vistos.has(d) && vistos.add(d); });
+    if (malas.length < 3) return espacial(R);
     const fig = [buena, ...malas.slice(0, 3)], orden = R.mezcla([0, 1, 2, 3]);
     return {e: "¿Cuál de las figuras es el modelo girado, sin darle la vuelta?", svg: dib(conMarca(c)), osvg: orden.map(i => dib(fig[i])), o: orden.map(i => `Figura ${"ABCD"[orden.indexOf(i)]}`), r: orden.indexOf(0),
       exp: `La correcta es el modelo girado ${k * 90}°. Las demás son su reflejo (como en un espejo): ningún giro las convierte en el modelo.`}; }
@@ -104,7 +230,23 @@ const PSICO = (() => {
   function rueda(cx, cy, r, dientes, flecha) { let d = ""; for (let i = 0; i < dientes; i++) { const a = i / dientes * 2 * Math.PI; d += `<line x1="${cx + r * Math.cos(a)}" y1="${cy + r * Math.sin(a)}" x2="${cx + (r + 6) * Math.cos(a)}" y2="${cy + (r + 6) * Math.sin(a)}" stroke="${TINTA}" stroke-width="4"/>`; }
     return `${d}<circle cx="${cx}" cy="${cy}" r="${r}" fill="#eef2f8" stroke="${TINTA}" stroke-width="2.5"/><circle cx="${cx}" cy="${cy}" r="4" fill="${TINTA}"/>${flecha || ""}`; }
   const flechaHoraria = (cx, cy, r) => `<path d="M${cx - r * .6} ${cy - r * .35} A${r * .7} ${r * .7} 0 0 1 ${cx + r * .6} ${cy - r * .35}" fill="none" stroke="#e0573b" stroke-width="3"/><path d="M${cx + r * .6} ${cy - r * .35} l-9 -3 l6 9 z" fill="#e0573b"/>`;
-  function mecanico(R) { const t = R.ri(0, 3);
+  // [pregunta, correcta, tres falsas, explicación]
+  const CONCEPTOS = [
+    ["Dos engranajes engranados, uno grande y otro pequeño. ¿Cuál da más vueltas?", "El pequeño", ["El grande", "Los dos dan las mismas", "Depende del sentido de giro"], "El pequeño tiene menos dientes: para que pasen los mismos dientes tiene que dar más vueltas."],
+    ["Dos poleas unidas por una correa, una grande y otra pequeña. ¿Cuál gira más deprisa?", "La pequeña", ["La grande", "Las dos igual", "La que tenga la correa más tensa"], "La correa recorre lo mismo en las dos: la pequeña, con menos perímetro, da más vueltas."],
+    ["Para levantar una piedra con una palanca haciendo la menor fuerza, ¿dónde conviene empujar?", "Lo más lejos posible del punto de apoyo", ["Lo más cerca posible del punto de apoyo", "Justo encima del punto de apoyo", "Da igual dónde se empuje"], "Cuanto más largo es el brazo donde se empuja, menos fuerza hace falta."],
+    ["¿Para qué sirve una polea fija?", "Para cambiar la dirección de la fuerza", ["Para reducir la fuerza a la mitad", "Para aumentar la velocidad de la carga", "Para reducir el peso de la carga"], "La polea fija no ahorra fuerza: permite tirar hacia abajo para subir la carga."],
+    ["Una bola de hierro y un taco de madera del mismo tamaño se echan al agua. ¿Qué ocurre?", "El hierro se hunde y la madera flota", ["Los dos se hunden", "Los dos flotan", "La madera se hunde y el hierro flota"], "Flota lo que pesa menos que el agua que desplaza: la madera es menos densa que el agua y el hierro, más."],
+    ["Al bajar al fondo de una piscina, la presión del agua…", "Aumenta", ["Disminuye", "No cambia", "Primero aumenta y luego disminuye"], "Cuanta más agua hay encima, más presión."],
+    ["Para aflojar una tuerca muy apretada, ¿qué llave cuesta menos?", "La de mango más largo", ["La de mango más corto", "Todas cuestan lo mismo", "La más pesada"], "Un mango más largo es una palanca mayor: con la misma fuerza se consigue más giro."],
+    ["Para subir una carga por una rampa, cuanto más larga y menos empinada es la rampa…", "Menos fuerza hace falta", ["Más fuerza hace falta", "La fuerza no cambia", "Más pesa la carga"], "Es un plano inclinado: se recorre más camino a cambio de hacer menos fuerza."],
+    ["Una carretilla lleva la carga entre la rueda y las manos. ¿Cuándo cuesta menos levantarla?", "Con la carga cerca de la rueda", ["Con la carga cerca de las manos", "Con la carga en el centro exacto", "Da igual dónde vaya la carga"], "Cuanto más cerca está la carga del punto de apoyo (la rueda), menos fuerza hay que hacer."],
+    ["Si se calienta el aire de un globo cerrado, el globo…", "Se hincha", ["Se deshincha", "No cambia", "Pesa más"], "El aire caliente se dilata y ocupa más espacio."]];
+  function mecanico(R) { const t = R.ri(0, 5);
+    if (t === 4) { const [e, bien, mal, exp] = R.pick(CONCEPTOS); return {e, ...opciones(R, bien, mal), exp}; }
+    if (t === 5) { const kg = R.pick([40, 60, 80, 100, 120, 150, 200]);
+      return {e: `Con una polea móvil ideal (sin rozamiento ni peso propio), ¿qué fuerza hace falta para sostener una carga de ${kg} kg?`, ...opciones(R, `La de ${kg / 2} kg`, [`La de ${kg} kg`, `La de ${kg * 2} kg`, `La de ${kg / 4} kg`]),
+        exp: `La carga cuelga de dos tramos de cuerda y cada uno sostiene la mitad: ${kg / 2} kg.`}; }
     if (t === 0) { const n = R.ri(3, 6), r = 26, paso = 2 * r + 8, w = n * paso + 20;
       const c = Array.from({length: n}, (_, i) => rueda(20 + r + i * paso, 50, r, 12, i === 0 ? flechaHoraria(20 + r, 50, r) : "") + `<text x="${20 + r + i * paso}" y="96" text-anchor="middle" font-size="13" fill="${TINTA}">${i + 1}</text>`).join("");
       const horario = n % 2 === 1, l = R.mezcla(["En sentido horario", "En sentido antihorario", "No gira: los engranajes se bloquean", "Alterna de sentido"]);
@@ -132,9 +274,17 @@ const PSICO = (() => {
 
   /* ---------- perceptivo ---------- */
   const PARECIDOS = {O: "0", 0: "O", I: "1", 1: "I", B: "8", 8: "B", S: "5", 5: "S", Z: "2", 2: "Z", Q: "O", G: "6", 6: "G", E: "F", F: "E", M: "N", N: "M"};
-  function perceptivo(R) { const t = R.ri(0, 2), ABC = "ABCDEFGHJKLMNPQRSTUVWXYZ0123456789";
+  function perceptivo(R) { const t = R.ri(0, 4), ABC = "ABCDEFGHJKLMNPQRSTUVWXYZ0123456789";
     const codigo = () => Array.from({length: 8}, (_, i) => i === 3 ? "-" : R.pick([...ABC])).join("");
     const tocar = s => { for (;;) { const i = R.pick([0, 1, 2, 4, 5, 6, 7]), c = s[i], n = PARECIDOS[c] || R.pick([...ABC]); if (n !== c) return s.slice(0, i) + n + s.slice(i + 1); } };
+    if (t === 4) { const m = {forma: R.ri(0, 2), lleno: R.r() < .5, ang: R.pick([0, 45, 90, 135, 180, 225, 270, 315]), puntos: R.ri(1, 4)};
+      const cambios = R.mezcla([f => ({...f, ang: (f.ang + 45) % 360}), f => ({...f, ang: (f.ang + 315) % 360}), f => ({...f, puntos: f.puntos + 1}), f => ({...f, puntos: f.puntos - 1}), f => ({...f, lleno: !f.lleno})]).slice(0, 3);
+      const fig = [m, ...cambios.map(c => c(m))], orden = R.mezcla([0, 1, 2, 3]);
+      return {e: "¿Qué figura es exactamente igual que el modelo?", svg: caja(m, "modelo"), osvg: orden.map(i => caja(fig[i], "opción")), o: orden.map((_, j) => `Figura ${"ABCD"[j]}`), r: orden.indexOf(0),
+        exp: "Las demás cambian un detalle: la inclinación de la aguja, el número de puntos o el relleno."}; }
+    if (t === 3) { const pares = Array.from({length: 5}, () => { const m = codigo(); return R.r() < .5 ? [m, m] : [m, tocar(m)]; }), n = pares.filter(([a, b]) => a === b).length;
+      const tabla = `<table class="ps-ficha ps-mono"><tbody>${pares.map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join("")}</tbody></table>`;
+      return {e: "¿Cuántos pares de códigos son exactamente iguales?", svg: tabla, ...opciones(R, n, R.mezcla([0, 1, 2, 3, 4, 5].filter(x => x !== n))), exp: `Son iguales ${n} de los 5 pares; en los demás cambia un carácter.`}; }
     if (t === 0) { const m = codigo(), malas = new Set(); while (malas.size < 3) malas.add(tocar(m));
       return {e: `¿Cuál es exactamente igual que el código ${m}?`, ...opciones(R, m, [...malas]), exp: `Solo «${m}» coincide carácter a carácter; las demás cambian uno.`, mono: true}; }
     if (t === 1) { const m = codigo(), distinta = tocar(m), l = R.mezcla([m, m, m, distinta]);
@@ -147,7 +297,16 @@ const PSICO = (() => {
   const NOMBRES = ["Laura", "Pedro", "Marta", "Javier", "Lucía", "Andrés", "Sara", "Diego", "Elena", "Rubén", "Nerea", "Óscar"];
   const CIUDADES = ["Cádiz", "Burgos", "Lugo", "Toledo", "Huesca", "Cáceres", "Murcia", "Gijón", "Teruel", "Ceuta"];
   const PUESTOS = ["conductor", "radio", "cocina", "almacén", "enfermería", "guardia", "mecánico", "transmisiones"];
-  function memoria(R) { const t = R.ri(0, 1);
+  const OBJETOS = ["mochila", "linterna", "brújula", "casco", "botas", "cuerda", "mapa", "radio", "manta", "cantimplora", "navaja", "guantes", "gafas", "reloj", "silbato", "tienda"];
+  function memoria(R) { const t = R.ri(0, 3);
+    if (t === 3) { const figs = [], ver = new Set();
+      while (figs.length < 4) { const f = {forma: R.ri(0, 2), lleno: R.r() < .5, ang: R.pick([0, 90, 180, 270]), puntos: R.ri(0, 3)}, k = JSON.stringify(f); if (!ver.has(k)) { ver.add(k); figs.push(f); } }
+      const pos = R.ri(1, 4), buena = figs[pos - 1], otras = figs.filter(f => f !== buena), orden = R.mezcla([0, 1, 2, 3]), fig = [buena, ...otras];
+      return {e: `¿Qué figura estaba en el lugar ${pos}?`, mem: {html: SVG(4 * 88, 84, figs.map((f, i) => `<g transform="translate(${i * 88} 0)">${figura(f)}</g>`).join(""), "cuatro figuras"), seg: 10},
+        osvg: orden.map(i => caja(fig[i], "opción")), o: orden.map((_, j) => `Figura ${"ABCD"[j]}`), r: orden.indexOf(0), exp: `En el lugar ${pos} estaba la figura marcada como correcta; las demás ocupaban otros lugares.`}; }
+    if (t === 2) { const l = R.mezcla(OBJETOS), vistos = l.slice(0, 7), fuera = R.pick(l.slice(7));
+      return {e: "¿Qué objeto NO estaba en la lista?", mem: {html: `<p class="ps-serie" style="font-size:1.2rem;letter-spacing:.04em">${vistos.join(" · ")}</p>`, seg: 15},
+        ...opciones(R, fuera, R.mezcla(vistos)), exp: `La lista era: ${vistos.join(", ")}. «${fuera}» no estaba.`}; }
     if (t === 0) { const filas = R.mezcla(NOMBRES).slice(0, 4).map((n, i) => ({n, c: R.mezcla(CIUDADES)[i], p: R.mezcla(PUESTOS)[i], num: R.ri(10, 99)}));
       // ciudades, puestos y números distintos entre filas: así cada pregunta tiene una sola respuesta
       const ciu = R.mezcla(CIUDADES).slice(0, 4), pue = R.mezcla(PUESTOS).slice(0, 4), nums = R.mezcla(Array.from({length: 90}, (_, i) => i + 10)).slice(0, 4);
@@ -155,9 +314,9 @@ const PSICO = (() => {
       const f = R.pick(filas), q = R.ri(0, 2), campo = ["c", "p", "num"][q], fuera = {c: CIUDADES.filter(x => !ciu.includes(x)), p: PUESTOS.filter(x => !pue.includes(x)), num: [nums[0] + 1, nums[1] + 2]}[campo];
       const ficha = `<table class="ps-ficha"><thead><tr><th>Nombre</th><th>Destino</th><th>Puesto</th><th>Número</th></tr></thead><tbody>${filas.map(x => `<tr><td>${x.n}</td><td>${x.c}</td><td>${x.p}</td><td>${x.num}</td></tr>`).join("")}</tbody></table>`;
       const preg = [`¿Cuál era el destino de ${f.n}?`, `¿Qué puesto tenía ${f.n}?`, `¿Qué número tenía ${f.n}?`][q];
-      return {e: preg, mem: {html: ficha, seg: 12}, ...opciones(R, f[campo], R.mezcla([...filas.filter(x => x !== f).map(x => x[campo]), ...fuera])), exp: `En la ficha, ${f.n}: ${f.c}, ${f.p}, número ${f.num}.`}; }
+      return {e: preg, mem: {html: ficha, seg: 20}, ...opciones(R, f[campo], R.mezcla([...filas.filter(x => x !== f).map(x => x[campo]), ...fuera])), exp: `En la ficha, ${f.n}: ${f.c}, ${f.p}, número ${f.num}.`}; }
     const s = Array.from({length: 7}, () => R.ri(1, 9)), pos = R.ri(1, 7), v = s[pos - 1];
-    return {e: `¿Qué número ocupaba el lugar ${pos} de la serie?`, mem: {html: `<p class="ps-serie">${s.join("  ")}</p>`, seg: 8}, ...opciones(R, v, R.mezcla([1, 2, 3, 4, 5, 6, 7, 8, 9].filter(x => x !== v))),
+    return {e: `¿Qué número ocupaba el lugar ${pos} de la serie?`, mem: {html: `<p class="ps-serie">${s.join("  ")}</p>`, seg: 10}, ...opciones(R, v, R.mezcla([1, 2, 3, 4, 5, 6, 7, 8, 9].filter(x => x !== v))),
       exp: `La serie era ${s.join(", ")}; en el lugar ${pos} estaba el ${v}.`}; }
 
   /* ---------- razonamiento abstracto: series de figuras ---------- */
@@ -170,9 +329,30 @@ const PSICO = (() => {
     const puntos = Array.from({length: f.puntos}, (_, i) => `<circle cx="${40 - (f.puntos - 1) * 6 + i * 12}" cy="74" r="3.5" fill="#3b6fd8"/>`).join("");
     return `${forma}${aguja}${puntos}`; }
   const caja = (f, etiqueta) => SVG(80, 84, figura(f), etiqueta);
-  function abstracto(R) {
-    // dos o tres atributos cambian con una regla fija; el resto queda igual
-    const reglas = R.mezcla(["ang", "puntos", "lleno", "forma"]).slice(0, R.ri(2, 3)), d = R.pick([45, 90]), dp = R.pick([1, 1, -1]);
+  const ALFABETO = "ABCDEFGHIJKLMNÑOPQRSTUVWXYZ";
+  function letras(R) { const d = R.ri(1, 4), crece = R.r() < .3, n = 5;
+    const pos = [R.ri(0, 6)]; for (let i = 1; i <= n; i++) pos.push(pos[i - 1] + (crece ? i : d));
+    if (pos[n] >= ALFABETO.length) return letras(R);
+    const s = pos.slice(0, n).map(i => ALFABETO[i]), sig = ALFABETO[pos[n]];
+    const malas = [pos[n] - 1, pos[n] + 1, pos[n] + 2, pos[n] - 2, pos[n] - 3].filter(i => i >= 0 && i < ALFABETO.length).map(i => ALFABETO[i]);
+    return {e: `¿Qué letra continúa la serie? (alfabeto español, con la Ñ) ${s.join(", ")}, …`, ...opciones(R, sig, R.mezcla(malas)),
+      exp: crece ? `Cada vez se avanza una letra más (+1, +2, +3…): sigue la ${sig}.` : `Se avanza ${d === 1 ? "de una en una" : `de ${d} en ${d}`} letras: sigue la ${sig}.`}; }
+  const PIPS = {0: [], 1: [[1, 1]], 2: [[0, 0], [2, 2]], 3: [[0, 0], [1, 1], [2, 2]], 4: [[0, 0], [2, 0], [0, 2], [2, 2]], 5: [[0, 0], [2, 0], [1, 1], [0, 2], [2, 2]], 6: [[0, 0], [0, 1], [0, 2], [2, 0], [2, 1], [2, 2]]};
+  const ficha = ([a, b], x = 0) => `<g transform="translate(${x} 0)"><rect x="6" y="2" width="44" height="84" rx="7" fill="#fff" stroke="${TINTA}" stroke-width="2.5"/><line x1="10" y1="44" x2="46" y2="44" stroke="${TINTA}" stroke-width="2"/>`
+    + [a, b].map((v, h) => PIPS[v].map(([i, j]) => `<circle cx="${16 + i * 12}" cy="${12 + h * 42 + j * 12}" r="4" fill="${TINTA}"/>`).join("")).join("") + "</g>";
+  function domino(R) { const da = R.pick([1, 2, 3, -1, -2]), db = R.pick([1, 2, -1, -2, 3]), m7 = v => ((v % 7) + 7) % 7;
+    const ini = [R.ri(0, 6), R.ri(0, 6)], f = i => [m7(ini[0] + da * i), m7(ini[1] + db * i)], serie = [0, 1, 2, 3].map(f), buena = f(4);
+    const ver = new Set([buena.join()]), malas = [[buena[1], buena[0]], [m7(buena[0] + 1), buena[1]], [buena[0], m7(buena[1] + 1)], [m7(buena[0] - 1), buena[1]], [buena[0], m7(buena[1] - 1)], f(3)]
+      .filter(x => { const k = x.join(); return !ver.has(k) && ver.add(k); });
+    if (malas.length < 3) return domino(R);
+    const fig = [buena, ...R.mezcla(malas).slice(0, 3)], orden = R.mezcla([0, 1, 2, 3]);
+    const tira = serie.map((x, i) => ficha(x, i * 62)).join("") + `<g transform="translate(${4 * 62} 0)"><rect x="6" y="2" width="44" height="84" rx="7" fill="none" stroke="${SUAVE}" stroke-width="3" stroke-dasharray="6 5"/><text x="28" y="52" text-anchor="middle" font-size="24" fill="${SUAVE}">?</text></g>`;
+    const txt = d => `${d > 0 ? "suma" : "resta"} ${Math.abs(d)}`;
+    return {e: "¿Qué ficha continúa la serie? (después del 6 viene el 0, la blanca)", svg: SVG(5 * 62, 88, tira, "serie de fichas de dominó"), osvg: orden.map(i => SVG(56, 88, ficha(fig[i]), "ficha")),
+      o: orden.map((_, j) => `Ficha ${"ABCD"[j]}`), r: orden.indexOf(0), exp: `Arriba cada ficha ${txt(da)} y abajo ${txt(db)}; tras el 6 se vuelve al 0. Sigue la ${buena[0]}–${buena[1]}.`}; }
+  function abstracto(R) { const t = R.r(); if (t < .25) return letras(R); if (t < .5) return domino(R);
+    // una o dos cosas cambian con una regla fija; el resto queda igual
+    const reglas = R.mezcla(["ang", "puntos", "lleno", "forma"]).slice(0, R.ri(1, 2)), d = R.pick([45, 90]), dp = R.pick([1, 1, -1]);
     const ini = {forma: R.ri(0, 2), lleno: R.r() < .5, ang: R.pick([0, 45, 90, 135]), puntos: dp > 0 ? R.ri(0, 1) : R.ri(4, 5)};
     const paso = i => ({forma: reglas.includes("forma") ? (ini.forma + i) % 3 : ini.forma, lleno: reglas.includes("lleno") ? (i % 2 ? !ini.lleno : ini.lleno) : ini.lleno,
       ang: reglas.includes("ang") ? (ini.ang + d * i) % 360 : ini.ang, puntos: reglas.includes("puntos") ? ini.puntos + dp * i : ini.puntos});
@@ -189,7 +369,7 @@ const PSICO = (() => {
       exp: `Las reglas: ${reglas.map(r => nombres[r]).join("; ")}.`}; }
 
   const GEN = {NUM: numerico, VER: verbal, ESP: espacial, MEC: mecanico, PER: perceptivo, MEM: memoria, ABS: abstracto};
-  function pregunta(f, n) { const id = `T-${f}-${String(n).padStart(4, "0")}`, R = azar(id);
+  function pregunta(f, n) { const id = `T2-${f}-${String(n).padStart(4, "0")}`, R = azar(id);
     return {id, psico: true, tema: f, oep: "Práctica", n, ...GEN[f](R)}; }
   // el banco: n preguntas de cada factor, siempre las mismas
   const banco = n => Object.keys(FACTORES).flatMap(f => Array.from({length: n}, (_, i) => pregunta(f, i + 1)));
@@ -982,7 +1162,7 @@ async function generarIA() { const v = selTema.value, nombre = selTema.options[s
 
 $("#mode-ia").hidden = true; syncConfig(); drawHist(); drawCurso();
 
-/* ================= TROPA Y MARINERÍA: calculadora de nota y pruebas físicas ================= */
+/* ================= TROPA Y MARINERÍA: calculadora de nota ================= */
 if (!C.psico) document.querySelectorAll(".solo-psico").forEach(e => e.remove());
 else {
   // sin exámenes oficiales no hay análisis, temario ni banco: fuera del menú y de la página
@@ -1015,33 +1195,130 @@ else {
   $("#nt-form").addEventListener("submit", e => e.preventDefault());
   calcularNota(); pintarMiMedia();
   addEventListener("hashchange", () => { if (location.hash === "#nota") pintarMiMedia(); });
-
-  // --- pruebas físicas: marcas mínimas de ingreso ---
-  const FS = C.fisicas, LSF = () => LS + LS_SUF + "-fisicas";
+}
+/* ================= PRUEBAS FÍSICAS: marcas de ingreso, puntos e historial de entrenamientos ================= */
+if (!C.fisicas) document.querySelectorAll(".solo-fisicas").forEach(e => e.remove());
+else {
+  const FS = C.fisicas, PUNTOS = FS.tipo === "puntos", LSF = () => LS + LS_SUF + "-fisicas", LSFH = () => LS + LS_SUF + "-fisicas-hist";
+  const NUM = ["", "una", "dos", "tres", "cuatro", "cinco"];
   const mmss = s => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`;
   const leeMin = v => { const m = String(v).trim().match(/^(\d{1,2})(?:[:'.,](\d{1,2}))?$/); return m ? +m[1] * 60 + (+m[2] || 0) : NaN; };
+  const lee = (p, raw) => { if (!String(raw).trim()) return NaN; const v = p.unidad === "min" ? leeMin(raw) : +String(raw).trim().replace(",", ".");
+    return Number.isFinite(v) && v >= 0 && v < 100000 ? Math.round(v * 100) / 100 : NaN; };
+  const marcaTxt = (p, v, largo) => p.unidad === "min" ? mmss(v) : p.unidad === "rep" ? (largo ? `${fmt(v)} repeticiones` : `${fmt(v)} rep.`) : `${fmt(v, Math.round(v * 100) % 100 ? (Math.round(v * 100) % 10 ? 2 : 1) : 0)} s`;
+  const mejor = (p, a, b) => p.sentido === "mas" ? a >= b : a <= b;
+  const diaTxt = (f, ano) => new Date(f + "T12:00").toLocaleDateString("es-ES", {day: "numeric", month: "short", ...(ano ? {year: "numeric"} : {})});
   const sexo = () => document.querySelector('input[name="fs-sexo"]:checked').value;
-  $("#fs-fuente").textContent = `Marcas de ingreso: ${FS.fuente}. Compruébalas en tu convocatoria antes de la prueba.`;
-  let guardadas = {}; try { guardadas = JSON.parse(localStorage.getItem(LSF())) || {}; } catch (e) { /* sin datos guardados */ }
-  if (guardadas.sexo) document.querySelector(`input[name="fs-sexo"][value="${guardadas.sexo}"]`).checked = true;
-  function pintarFisicas() { const sx = sexo();
-    $("#fs-lista").innerHTML = FS.pruebas.map(([k, nombre, desc, unidad, h, m, sentido]) => { const marca = sx === "h" ? h : m;
-      const txt = unidad === "min" ? mmss(marca) : `${fmt(marca, marca % 1 ? 1 : 0)} ${unidad === "rep" ? "repeticiones" : "s"}`;
-      return `<div class="fs-fila" data-k="${k}"><div><b>${nombre}</b><span class="note">${desc} Marca mínima: <b>${sentido === "mas" ? "al menos" : "como mucho"} ${txt}</b>.</span></div>
-        <label for="fs-${k}" class="fs-in"><span class="fuera">Tu marca en ${nombre}</span><input id="fs-${k}" type="text" inputmode="${unidad === "min" ? "numeric" : "decimal"}" placeholder="${unidad === "min" ? "mm:ss" : "Tu marca"}" autocomplete="off" value="${esc(guardadas[k] ?? "")}"></label>
-        <span class="fs-est" id="fs-est-${k}"></span></div>`; }).join("");
-    $("#fs-lista").querySelectorAll("input").forEach(i => i.addEventListener("input", evaluarFisicas)); evaluarFisicas(); }
-  function evaluarFisicas() { const sx = sexo(); let hechas = 0, aptas = 0; guardadas = {sexo: sx};
-    FS.pruebas.forEach(([k, , , unidad, h, m, sentido]) => { const raw = $("#fs-" + k).value, marca = sx === "h" ? h : m, est = $("#fs-est-" + k); guardadas[k] = raw;
-      const v = unidad === "min" ? leeMin(raw) : parseFloat(String(raw).replace(",", "."));
-      if (!raw.trim() || isNaN(v)) { est.textContent = raw.trim() ? "Escríbela así: 11:30" : ""; est.className = "fs-est"; return; }
-      const ok = sentido === "mas" ? v >= marca : v <= marca; hechas++; if (ok) aptas++;
-      est.textContent = ok ? "Apto" : "No llegas"; est.className = "fs-est " + (ok ? "ok" : "ko"); });
-    $("#fs-total").textContent = !hechas ? "" : hechas < FS.pruebas.length ? `Llevas ${aptas} de ${hechas} pruebas superadas.` : aptas === hechas ? "Con estas marcas superas las cuatro pruebas." : `No llegas a ${hechas - aptas === 1 ? "una prueba" : `${hechas - aptas} pruebas`}: con una sola, quedas fuera.`;
-    $("#fs-total").className = "fs-total" + (hechas === FS.pruebas.length ? (aptas === hechas ? " ok" : " ko") : "");
+  const tramo = () => FS.tramos ? +$("#fs-tramo").value || 0 : 0;
+  const delSexo = () => FS.pruebas.filter(p => !p.solo || p.solo === sexo());
+  // la marca que se exige (apto) o la lista de 1 a 10 puntos, según sexo y edad
+  const exigida = p => { const v = p[sexo()]; return FS.tramos ? v[tramo()] : v; };
+  const puntos = (p, v) => exigida(p).filter(t => mejor(p, v, t)).length;
+  const referencia = p => PUNTOS ? exigida(p)[4] : exigida(p);   // en puntos, lo que da un 5
+
+  $("#fs-intro").textContent = FS.intro;
+  $("#fs-fuente").textContent = `Marcas: ${FS.fuente}. Compruébalas en tu convocatoria antes de la prueba.`;
+  if (FS.tramos) { $("#fs-tramo-l").hidden = false; $("#fs-tramo").innerHTML = FS.tramos.map((t, i) => `<option value="${i}">${esc(t)}</option>`).join(""); }
+  $("#fs-fecha").value = hoyISO(); $("#fs-fecha").max = hoyISO();
+
+  let guardadas = {}, HISTF = [];
+  function leerFisicas() {
+    try { guardadas = JSON.parse(localStorage.getItem(LSF())) || {}; } catch (e) { guardadas = {}; }
+    try { HISTF = JSON.parse(localStorage.getItem(LSFH())) || []; } catch (e) { HISTF = []; }
+    if (!Array.isArray(HISTF)) HISTF = [];
+    document.querySelector(`input[name="fs-sexo"][value="${guardadas.sexo === "m" ? "m" : "h"}"]`).checked = true;
+    if (FS.tramos) $("#fs-tramo").value = String(guardadas.tramo || 0);
+  }
+  const guardarHist = () => { HISTF.sort((a, b) => a.fecha < b.fecha ? -1 : 1); try { localStorage.setItem(LSFH(), JSON.stringify(HISTF)); } catch (e) { /* sin almacenamiento */ } };
+
+  function pintarFisicas() {
+    $("#fs-lista").innerHTML = delSexo().map(p => { const e = exigida(p);
+      const req = PUNTOS ? `Para un 5: <b>${marcaTxt(p, e[4], true)}</b>; para un 10: <b>${marcaTxt(p, e[9], true)}</b>.` : `Marca mínima: <b>${p.sentido === "mas" ? "al menos" : "como mucho"} ${marcaTxt(p, e, true)}</b>.`;
+      return `<div class="fs-fila" data-k="${p.k}"><div><b>${esc(p.nombre)}</b><span class="note">${esc(p.desc)} ${req}</span></div>
+        <label for="fs-${p.k}" class="fs-in"><span class="fuera">Tu marca en ${esc(p.nombre)}</span><input id="fs-${p.k}" type="text" inputmode="${p.unidad === "min" ? "numeric" : "decimal"}" placeholder="${p.unidad === "min" ? "mm:ss" : p.unidad === "rep" ? "Repeticiones" : "Segundos"}" autocomplete="off" value="${esc(guardadas[p.k] ?? "")}"></label>
+        <span class="fs-est" id="fs-est-${p.k}"></span></div>`; }).join("");
+    $("#fs-lista").querySelectorAll("input").forEach(i => i.addEventListener("input", evaluarFisicas));
+    evaluarFisicas(); pintarProgreso(); }
+
+  function evaluarFisicas() {
+    const ps = delSexo(); let hechas = 0, aptas = 0, suma = 0; const ceros = [];
+    guardadas = {...guardadas, sexo: sexo(), tramo: tramo()};
+    ps.forEach(p => { const raw = $("#fs-" + p.k).value, v = lee(p, raw), est = $("#fs-est-" + p.k); guardadas[p.k] = raw;
+      if (isNaN(v)) { est.textContent = raw.trim() ? (p.unidad === "min" ? "Escríbela así: 9:30" : "Escribe solo el número") : ""; est.className = "fs-est"; return; }
+      hechas++;
+      if (PUNTOS) { const pt = puntos(p, v); suma += pt; if (!pt) ceros.push(p.nombre);
+        est.textContent = pt === 1 ? "1 punto" : `${pt} puntos`; est.className = "fs-est " + (pt >= 5 ? "ok" : pt ? "" : "ko"); }
+      else { const ok = mejor(p, v, exigida(p)); if (ok) aptas++; est.textContent = ok ? "Apto" : "No llegas"; est.className = "fs-est " + (ok ? "ok" : "ko"); } });
+    const todas = hechas === ps.length, t = $("#fs-total");
+    if (PUNTOS) { const media = hechas ? suma / hechas : 0;
+      t.textContent = !hechas ? "" : ceros.length ? `Con un 0 en ${ceros.join(" y ")} quedas eliminado.`
+        : !todas ? `Llevas ${fmt(suma)} puntos en ${NUM[hechas]} de los ${NUM[ps.length]} ejercicios.`
+        : media >= 5 ? `Media: ${fmt(media, 2)} puntos. Con estas marcas apruebas las pruebas físicas.` : `Media: ${fmt(media, 2)} puntos. Te falta para el 5 de media que hace falta para aprobar.`;
+      t.className = "fs-total" + (ceros.length ? " ko" : todas ? (media >= 5 ? " ok" : " ko") : ""); }
+    else { t.textContent = !hechas ? "" : !todas ? `Llevas ${aptas} de ${hechas} pruebas superadas.` : aptas === hechas ? `Con estas marcas superas las ${NUM[ps.length]} pruebas.`
+        : `No llegas a ${hechas - aptas === 1 ? "una prueba" : `${hechas - aptas} pruebas`}: con una sola, quedas fuera.`;
+      t.className = "fs-total" + (todas ? (aptas === hechas ? " ok" : " ko") : ""); }
     try { localStorage.setItem(LSF(), JSON.stringify(guardadas)); } catch (e) { /* sin almacenamiento */ } }
+
+  // gráfico de una prueba: arriba siempre es mejor (en las de tiempo se invierte el eje)
+  function grafico(p, serie) {
+    const W = 420, H = 150, m = {l: 46, r: 12, t: 14, b: 24}, ref = referencia(p);
+    const vals = serie.map(x => x.v).concat(ref), lo = Math.min(...vals), hi = Math.max(...vals), pad = (hi - lo || Math.max(1, hi * 0.1)) * 0.12;
+    const [a, b] = [lo - pad, hi + pad], dias = serie.map(x => +new Date(x.fecha + "T12:00")), d0 = dias[0], d1 = dias[dias.length - 1];
+    const x = i => serie.length < 2 ? (m.l + W - m.r) / 2 : m.l + (W - m.l - m.r) * (dias[i] - d0) / (d1 - d0 || 1);
+    const y = v => { const f = (v - a) / (b - a); return m.t + (H - m.t - m.b) * (p.sentido === "mas" ? 1 - f : f); };
+    const eje = [a + pad, (a + b) / 2, b - pad];
+    return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolución en ${esc(p.nombre)}">
+      ${eje.map(v => `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}" style="stroke:var(--rule)"/><text x="${m.l - 6}" y="${(y(v) + 4).toFixed(1)}" text-anchor="end" font-size="10" style="fill:var(--muted)">${p.unidad === "min" ? mmss(v) : fmt(v, p.unidad === "rep" ? 0 : 1)}</text>`).join("")}
+      <line x1="${m.l}" x2="${W - m.r}" y1="${y(ref).toFixed(1)}" y2="${y(ref).toFixed(1)}" style="stroke:var(--flag)" stroke-width="1.5" stroke-dasharray="5 4"/>
+      <text x="${m.l + 4}" y="${(y(ref) - 5).toFixed(1)}" font-size="10" style="fill:var(--flag)">${PUNTOS ? "5 puntos" : "marca mínima"}</text>
+      ${serie.length > 1 ? `<polyline points="${serie.map((s, i) => `${x(i).toFixed(1)},${y(s.v).toFixed(1)}`).join(" ")}" fill="none" style="stroke:var(--pen)" stroke-width="2"/>` : ""}
+      ${serie.map((s, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(s.v).toFixed(1)}" r="${i === serie.length - 1 ? 4 : 2.8}" style="fill:var(--pen)"><title>${diaTxt(s.fecha, true)}: ${marcaTxt(p, s.v)}</title></circle>`).join("")}
+      <text x="${m.l}" y="${H - 6}" font-size="10" style="fill:var(--muted)">${diaTxt(serie[0].fecha)}</text>
+      ${serie.length > 1 ? `<text x="${W - m.r}" y="${H - 6}" text-anchor="end" font-size="10" style="fill:var(--muted)">${diaTxt(serie[serie.length - 1].fecha)}</text>` : ""}</svg>`; }
+
+  function pintarProgreso() {
+    const ps = delSexo(), conDatos = ps.filter(p => HISTF.some(h => h.m[p.k] != null));
+    if (!conDatos.length) { $("#fs-graficos").innerHTML = `<p class="note">Aún no has guardado ninguna marca. Cuando entrenes, escríbelas arriba y pulsa «Guardar estas marcas»: aquí verás tu evolución en cada prueba y tu mejor marca.</p>`; $("#fs-hist").innerHTML = ""; return; }
+    $("#fs-graficos").innerHTML = conDatos.map(p => {
+      const serie = HISTF.filter(h => h.m[p.k] != null).map(h => ({fecha: h.fecha, v: h.m[p.k]}));
+      const top = serie.reduce((r, s) => mejor(p, s.v, r.v) && s.v !== r.v ? s : r, serie[0]), ult = serie[serie.length - 1];
+      const estado = PUNTOS ? `${puntos(p, ult.v)} puntos` : mejor(p, ult.v, exigida(p)) ? "apto" : "aún no llegas";
+      const dif = serie.length > 1 ? ult.v - serie[0].v : 0, mejora = serie.length > 1 && dif !== 0 && mejor(p, ult.v, serie[0].v);
+      const difTxt = p.unidad === "min" ? (Math.abs(dif) < 60 ? `${fmt(Math.abs(dif))} s` : mmss(Math.abs(dif))) : p.unidad === "rep" ? `${fmt(Math.abs(dif))} rep.` : `${fmt(Math.abs(dif), 1)} s`;
+      return `<div class="fs-graf"><h4>${esc(p.nombre)}</h4>${grafico(p, serie)}
+        <div class="fs-cifras"><span>Última: <b>${marcaTxt(p, ult.v)}</b> (${estado})</span><span>Mejor: <b>${marcaTxt(p, top.v)}</b>, ${diaTxt(top.fecha)}</span>
+        ${serie.length > 1 ? `<span>${mejora ? `Has mejorado ${difTxt} desde el ${diaTxt(serie[0].fecha)}` : dif ? `${difTxt} peor que el ${diaTxt(serie[0].fecha)}` : `Igual que el ${diaTxt(serie[0].fecha)}`}</span>` : ""}</div></div>`; }).join("");
+    const filas = HISTF.slice().reverse();
+    const mejores = Object.fromEntries(conDatos.map(p => [p.k, HISTF.filter(h => h.m[p.k] != null).reduce((r, h) => r == null || mejor(p, h.m[p.k], r) ? h.m[p.k] : r, null)]));
+    $("#fs-hist").innerHTML = `<h4 class="fs-hist-t">Marcas guardadas</h4><div class="scroll"><table class="fs-tabla"><thead><tr><th>Día</th>${conDatos.map(p => `<th>${esc(p.nombre)}</th>`).join("")}<th><span class="fuera">Borrar</span></th></tr></thead>
+      <tbody>${filas.map(h => `<tr><td>${diaTxt(h.fecha, true)}</td>${conDatos.map(p => h.m[p.k] == null ? "<td>—</td>" : `<td${h.m[p.k] === mejores[p.k] ? ' class="mejor" title="Tu mejor marca"' : ""}>${marcaTxt(p, h.m[p.k])}</td>`).join("")}<td><button type="button" class="fs-borrar" data-fs-borrar="${h.fecha}">Borrar</button></td></tr>`).join("")}</tbody></table></div>`;
+    $("#fs-hist").querySelectorAll("[data-fs-borrar]").forEach(b => b.onclick = () => {
+      if (!b.dataset.seguro) { b.dataset.seguro = "1"; b.textContent = "¿Seguro?"; setTimeout(() => { if (b.isConnected) { delete b.dataset.seguro; b.textContent = "Borrar"; } }, 4000); return; }
+      const f = b.dataset.fsBorrar; HISTF = HISTF.filter(h => h.fecha !== f); guardarHist(); pintarProgreso();
+      $("#fs-estado").textContent = `Borradas las marcas del ${diaTxt(f)}.`;
+      window.GANCHOS?.alBorrarMarcas?.(f); }); }
+
+  $("#fs-guardar").onclick = () => {
+    const fecha = $("#fs-fecha").value, est = $("#fs-estado");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha) || fecha > hoyISO()) { est.textContent = "Elige el día del entrenamiento (hoy o antes)."; return; }
+    const marcas = delSexo().map(p => ({prueba: p.k, valor: lee(p, $("#fs-" + p.k).value)})).filter(x => !isNaN(x.valor));
+    if (!marcas.length) { est.textContent = "Escribe al menos una marca para guardarla."; return; }
+    let dia = HISTF.find(h => h.fecha === fecha); if (!dia) HISTF.push(dia = {fecha, m: {}});
+    marcas.forEach(x => { dia.m[x.prueba] = x.valor; }); guardarHist(); pintarProgreso();
+    est.textContent = `Guardadas ${marcas.length === 1 ? "la marca" : `las ${marcas.length} marcas`} del ${diaTxt(fecha)}.`;
+    window.GANCHOS?.alGuardarMarcas?.({fecha, marcas}); };
+
   document.querySelectorAll('input[name="fs-sexo"]').forEach(r => r.addEventListener("change", pintarFisicas));
-  pintarFisicas();
+  $("#fs-tramo").addEventListener("change", pintarFisicas);
+  leerFisicas(); pintarFisicas();
+  // para cuenta.js: el historial de la cuenta sustituye a la copia local, y al salir se vuelve a la del visitante
+  window.FISICAS = {
+    historial: () => HISTF.map(h => ({fecha: h.fecha, m: {...h.m}})),
+    poner(lista) { HISTF = lista.map(h => ({fecha: h.fecha, m: {...h.m}})); guardarHist(); pintarProgreso(); },
+    recargar() { leerFisicas(); pintarFisicas(); },
+    invitar(html) { $("#fs-invita").innerHTML = html; return $("#fs-invita"); },
+  };
 }
 // cuenta atrás hasta el próximo examen, si la convocatoria tiene fecha
 if (C.fechaExamen) { const dias = diasHasta(C.fechaExamen);

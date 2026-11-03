@@ -339,6 +339,21 @@ svg text{font-family:var(--f-ui)}
 .fs-est{font-weight:700}.fs-est.ok{color:var(--good)}.fs-est.ko{color:var(--bad)}
 .fs-total{font-weight:700;margin-top:10px;min-height:1.4em}.fs-total.ok{color:var(--good)}.fs-total.ko{color:var(--bad)}
 .fuera{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.fs-sexo{justify-content:space-between;align-items:center}.fs-radios{display:flex;gap:4px 18px;flex-wrap:wrap}
+#fs-tramo-l{display:flex;gap:8px;align-items:center}
+.fs-guardar{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:end;margin-top:14px;padding-top:14px;border-top:1px solid var(--rule)}
+.fs-guardar label{display:grid;gap:4px}
+#fs-progreso{margin-top:14px}#fs-progreso h3{margin-bottom:6px}
+.fs-graficos{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:18px 26px;margin-top:10px}
+.fs-graf{display:grid;gap:4px;align-content:start}.fs-graf h4{margin:0}
+.fs-graf svg{width:100%;height:auto;overflow:visible}
+.fs-cifras{display:flex;flex-wrap:wrap;gap:2px 16px;font-size:.92rem;color:var(--ink-2)}.fs-cifras b{color:var(--ink)}
+.fs-tabla{border-collapse:collapse;width:100%;font-size:.93rem;margin-top:6px}
+.fs-tabla th,.fs-tabla td{padding:7px 10px;border-bottom:1px solid var(--rule);text-align:right;white-space:nowrap}
+.fs-tabla th:first-child,.fs-tabla td:first-child{text-align:left}.fs-tabla td:last-child{width:1%}
+.fs-tabla .mejor{font-weight:700;color:var(--good)}
+.fs-tabla{position:relative}.fs-tabla th{white-space:normal;vertical-align:bottom;font-size:.86rem;color:var(--ink-2)}
+.fs-hist-t{margin-top:22px}.fs-borrar{font-size:.85rem;padding:4px 10px}
 @media (max-width:600px){.fs-fila{grid-template-columns:1fr 1fr}.fs-fila > div{grid-column:1 / -1}}
 /* «Practicar» en dos secciones: exámenes y tests, y el juego */
 .pr-tabs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px}
@@ -467,7 +482,7 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
   .exbar .row button{font-size:.8rem;padding:6px 9px}#ex-timer{font-size:.95rem;margin-right:auto}}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 </style>
-<link rel="stylesheet" href="cuenta.css?v=51708694cc">
+<link rel="stylesheet" href="cuenta.css?v=9d1bed5f0c">
 </head>
 <body>
 <noscript><p style="padding:20px;font:16px/1.5 sans-serif">Esta web necesita JavaScript para funcionar: actívalo en tu navegador.</p></noscript>
@@ -495,7 +510,7 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
     <a href="#resumen" data-sec="resumen">Resumen</a>
     <a href="#examenes" class="nav-practicar" data-sec="examenes">Practicar</a>
     <a href="#nota" data-sec="nota" class="solo-psico">Tu nota</a>
-    <a href="#fisicas" data-sec="fisicas" class="solo-psico">Pruebas físicas</a>
+    <a href="#fisicas" data-sec="fisicas" class="solo-fisicas">Pruebas físicas</a>
     <div class="nav-grupo">
       <button type="button" class="nav-abre" id="nav-analisis-b" aria-expanded="false" aria-controls="nav-analisis">Análisis <svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1.5 3.5 5 7l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
       <div class="nav-menu" id="nav-analisis" hidden>
@@ -765,16 +780,30 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
   <details class="como"><summary>Cómo se calcula</summary><p>Los méritos generales y académicos suman como mucho 36 puntos, y los militares, 4: en total, hasta 40, que se pasan a una escala de 0 a 10. Tus aciertos en la prueba también se pasan a 0–10. Según las guías de preparación, la nota final pondera un 70 % la prueba y un 30 % los méritos; la fórmula exacta y el baremo completo están en la convocatoria (BOE-A-2026-436, base 8.3 y apéndice 8). Los deportistas de alto nivel suman 30 puntos, no 3, en las plazas de deportes olímpicos. Es una estimación: la nota de corte depende de cada plaza y de cuántos se presenten.</p></details>
 </section>
 
-<section id="fisicas" class="solo-psico">
+<section id="fisicas" class="solo-fisicas">
   <header><h2>Pruebas físicas</h2>
-  <p class="ink2">Son eliminatorias: hay que llegar a la marca en las cuatro. Escribe tus marcas y comprueba si llegas.</p></header>
+  <p class="ink2"><span id="fs-intro"></span> Escribe tus marcas para ver si llegas y guárdalas cada vez que entrenes: verás cómo mejoras.</p></header>
   <div class="panel">
-    <div class="controls fs-sexo" role="radiogroup" aria-label="Marcas para">
-      <label class="check" for="fs-h"><input type="radio" name="fs-sexo" id="fs-h" value="h" checked> Hombres</label>
-      <label class="check" for="fs-m"><input type="radio" name="fs-sexo" id="fs-m" value="m"> Mujeres</label>
+    <div class="controls fs-sexo">
+      <span role="radiogroup" aria-label="Marcas para" class="fs-radios">
+        <label class="check" for="fs-h"><input type="radio" name="fs-sexo" id="fs-h" value="h" checked> Hombres</label>
+        <label class="check" for="fs-m"><input type="radio" name="fs-sexo" id="fs-m" value="m"> Mujeres</label>
+      </span>
+      <label for="fs-tramo" id="fs-tramo-l" hidden>Edad <select id="fs-tramo"></select></label>
     </div>
     <div class="fs-lista" id="fs-lista"></div>
     <p class="fs-total" id="fs-total" aria-live="polite"></p>
+    <div class="fs-guardar">
+      <label for="fs-fecha">Día del entrenamiento <input type="date" id="fs-fecha"></label>
+      <button type="button" class="primary" id="fs-guardar">Guardar estas marcas</button>
+      <span class="note" id="fs-estado" aria-live="polite"></span>
+    </div>
+  </div>
+  <div class="panel" id="fs-progreso">
+    <h3>Tu progreso</h3>
+    <div id="fs-invita"></div>
+    <div class="fs-graficos" id="fs-graficos"></div>
+    <div id="fs-hist"></div>
   </div>
   <p class="note" id="fs-fuente"></p>
 </section>
@@ -804,10 +833,10 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
 </div>
 <div class="tip" id="tip" hidden></div>
 
-<script>window.VERSION = "51708694cc";</script>
-<script src="vendor/supabase.js?v=51708694cc"></script>
-<script src="config.js?v=51708694cc"></script>
-<script src="cuenta.js?v=51708694cc"></script>
-<script src="cargador.js?v=51708694cc"></script>
+<script>window.VERSION = "9d1bed5f0c";</script>
+<script src="vendor/supabase.js?v=9d1bed5f0c"></script>
+<script src="config.js?v=9d1bed5f0c"></script>
+<script src="cuenta.js?v=9d1bed5f0c"></script>
+<script src="cargador.js?v=9d1bed5f0c"></script>
 </body>
 </html>
