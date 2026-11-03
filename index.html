@@ -338,6 +338,19 @@ svg text{font-family:var(--f-ui)}
 .fs-fila > div{display:grid;gap:2px}.fs-in input{width:100%}
 .fs-est{font-weight:700}.fs-est.ok{color:var(--good)}.fs-est.ko{color:var(--bad)}
 .fs-total{font-weight:700;margin-top:10px;min-height:1.4em}.fs-total.ok{color:var(--good)}.fs-total.ko{color:var(--bad)}
+.nc-panel{margin-top:14px;display:grid;gap:10px}
+.nc-resumen{font-size:1.05rem;margin:0}.nc-resumen b{font-size:1.25rem}
+.nc-ejs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:10px}
+.nc-ej{border:1px solid var(--rule);border-radius:var(--radio);padding:10px 12px;display:grid;gap:4px}
+.nc-ej b{font-size:.95rem}.nc-ej .note{margin:0}
+.nc-barra{height:8px;border-radius:4px;background:var(--chip);overflow:hidden}.nc-barra i{display:block;height:100%;background:var(--good)}
+.nc-filtros{align-items:end;gap:10px 16px}.nc-filtros label:not(.check){display:grid;gap:4px}
+.nc-tabla{border-collapse:collapse;width:100%;font-size:.9rem}
+.nc-tabla th,.nc-tabla td{padding:6px 8px;border-bottom:1px solid var(--rule);text-align:left;vertical-align:top}
+.nc-tabla th{font-size:.82rem;color:var(--ink-2);position:sticky;top:0;background:var(--sheet)}
+.nc-tabla .num{text-align:right;white-space:nowrap}.nc-tabla td:first-child{font-family:ui-monospace,Consolas,monospace;font-size:.82rem}
+.nc-si{color:var(--good);font-weight:700;white-space:nowrap}.nc-no{color:var(--muted);white-space:nowrap}
+.nc-panel .scroll{max-height:460px;overflow:auto;position:relative}
 .fuera{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 .fs-sexo{justify-content:space-between;align-items:center}.fs-radios{display:flex;gap:4px 18px;flex-wrap:wrap}
 #fs-tramo-l{display:flex;gap:8px;align-items:center}
@@ -482,7 +495,7 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
   .exbar .row button{font-size:.8rem;padding:6px 9px}#ex-timer{font-size:.95rem;margin-right:auto}}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 </style>
-<link rel="stylesheet" href="cuenta.css?v=9d1bed5f0c">
+<link rel="stylesheet" href="cuenta.css?v=cab240dc0b">
 </head>
 <body>
 <noscript><p style="padding:20px;font:16px/1.5 sans-serif">Esta web necesita JavaScript para funcionar: actívalo en tu navegador.</p></noscript>
@@ -777,6 +790,20 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
       <p class="note" id="nt-aviso"></p>
     </div>
   </div>
+  <div class="panel nc-panel" id="nc-panel" hidden>
+    <h3>¿A qué destinos llegarías?</h3>
+    <p class="nc-resumen" id="nc-resumen" aria-live="polite"></p>
+    <div class="nc-ejs" id="nc-ejs"></div>
+    <div class="controls nc-filtros">
+      <label for="nc-ciclo">Ciclo<select id="nc-ciclo"><option value="2">2.º ciclo de 2026</option><option value="1">1.er ciclo de 2026</option></select></label>
+      <label for="nc-ej">Ejército<select id="nc-ej"><option value="">Todos</option></select></label>
+      <label for="nc-busca">Buscar destino o especialidad<input type="search" id="nc-busca" placeholder="Por ejemplo: Madrid, ALA 14, TRS" autocomplete="off"></label>
+      <label class="check" for="nc-mias"><input type="checkbox" id="nc-mias"> Solo a los que llego</label>
+    </div>
+    <div class="scroll"><table class="nc-tabla"><thead><tr><th>Esp.</th><th>Destino</th><th class="num">Plazas</th><th class="num">Nota de corte</th><th><span class="fuera">Con tu nota</span></th></tr></thead><tbody id="nc-filas"></tbody></table></div>
+    <p class="note" id="nc-mas"></p>
+    <p class="note" id="nc-fuente"></p>
+  </div>
   <details class="como"><summary>Cómo se calcula</summary><p>Los méritos generales y académicos suman como mucho 36 puntos, y los militares, 4: en total, hasta 40, que se pasan a una escala de 0 a 10. Tus aciertos en la prueba también se pasan a 0–10. Según las guías de preparación, la nota final pondera un 70 % la prueba y un 30 % los méritos; la fórmula exacta y el baremo completo están en la convocatoria (BOE-A-2026-436, base 8.3 y apéndice 8). Los deportistas de alto nivel suman 30 puntos, no 3, en las plazas de deportes olímpicos. Es una estimación: la nota de corte depende de cada plaza y de cuántos se presenten.</p></details>
 </section>
 
@@ -833,10 +860,10 @@ footer{padding-block:32px;font-size:.84rem;color:var(--muted);display:grid;gap:8
 </div>
 <div class="tip" id="tip" hidden></div>
 
-<script>window.VERSION = "9d1bed5f0c";</script>
-<script src="vendor/supabase.js?v=9d1bed5f0c"></script>
-<script src="config.js?v=9d1bed5f0c"></script>
-<script src="cuenta.js?v=9d1bed5f0c"></script>
-<script src="cargador.js?v=9d1bed5f0c"></script>
+<script>window.VERSION = "cab240dc0b";</script>
+<script src="vendor/supabase.js?v=cab240dc0b"></script>
+<script src="config.js?v=cab240dc0b"></script>
+<script src="cuenta.js?v=cab240dc0b"></script>
+<script src="cargador.js?v=cab240dc0b"></script>
 </body>
 </html>

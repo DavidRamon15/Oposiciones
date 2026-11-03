@@ -1178,12 +1178,35 @@ else {
   // --- tu nota: méritos (0–40 → 0–10) y prueba (aciertos → 0–10); ponderación 70/30 según las guías ---
   const LSN = () => LS + LS_SUF + "-nota", campos = ["nt-carne", "nt-ingles", "nt-titulo", "nt-deporte", "nt-empleo", "nt-recomp", "nt-misiones", "nt-anos", "nt-aciertos"];
   const val = id => { const e = $("#" + id); return e.type === "checkbox" ? (e.checked ? 3 : 0) : +e.value || 0; };
+  // --- notas de corte por plaza de 2026: a cuáles llegarías con la nota calculada ---
+  const NC = D.cortes, nc3 = v => fmt(v, 3);
+  let PF = 0, ncVer = 50;
+  if (NC?.ciclos) { $("#nc-panel").hidden = false; $("#nc-fuente").textContent = `${NC.fuente}. Las notas cambian en cada ciclo según la nota de quienes piden cada plaza: tómalas como orientación.`;
+    $("#nc-ej").insertAdjacentHTML("beforeend", NC.ejercitos.map((e, i) => `<option value="${i}">${esc(e)}</option>`).join(""));
+    ["nc-ciclo", "nc-ej", "nc-mias"].forEach(id => $("#" + id).addEventListener("change", () => { ncVer = 50; pintarCortes(PF); }));
+    $("#nc-busca").addEventListener("input", () => { ncVer = 50; pintarCortes(PF); }); }
+  function pintarCortes(pf) { PF = pf; if (!NC?.ciclos) return;
+    const ciclo = NC.ciclos[$("#nc-ciclo").value] || [], conNota = ciclo.filter(x => x[4] != null), llego = x => x[4] != null && pf >= x[4];
+    const plazas = l => l.reduce((a, x) => a + x[3], 0), alc = conNota.filter(llego);
+    $("#nc-resumen").innerHTML = `Con un <b>${fmt(pf, 3)}</b> habrías llegado a <b>${alc.length}</b> de los ${conNota.length} destinos del ${$("#nc-ciclo").value === "1" ? "1.er" : "2.º"} ciclo (${miles(plazas(alc))} de ${miles(plazas(conNota))} plazas).`;
+    $("#nc-ejs").innerHTML = NC.ejercitos.map((e, i) => { const l = conNota.filter(x => x[0] === i).map(x => x[4]).sort((a, b) => a - b), si = l.filter(v => pf >= v).length;
+      return !l.length ? "" : `<div class="nc-ej"><b>${esc(e)}</b><span class="nc-barra" title="${si} de ${l.length}"><i style="width:${Math.round(100 * si / l.length)}%"></i></span>
+        <span class="note">Llegas a ${si} de ${l.length} destinos. Notas de corte de ${nc3(l[0])} a ${nc3(l[l.length - 1])}; la mitad, por debajo de ${nc3(l[Math.floor(l.length / 2)])}.</span></div>`; }).join("");
+    const ej = $("#nc-ej").value, q = normTxt($("#nc-busca").value.trim()), solo = $("#nc-mias").checked;
+    const l = ciclo.filter(x => (ej === "" || x[0] === +ej) && (!q || normTxt(x[1] + " " + x[2]).includes(q)) && (!solo || llego(x)))
+      // primero los que alcanzas, del de nota más alta al más baja; después los demás, de más cerca a más lejos; las desiertas al final
+      .sort((a, b) => (a[4] == null) - (b[4] == null) || llego(b) - llego(a) || (llego(a) ? b[4] - a[4] : a[4] - b[4]));
+    $("#nc-filas").innerHTML = l.slice(0, ncVer).map(x => `<tr><td>${esc(x[1])}</td><td>${esc(x[2])}</td><td class="num">${x[3] || "—"}</td><td class="num">${x[4] == null ? "Desierta" : nc3(x[4])}</td>
+      <td>${x[4] == null ? "" : llego(x) ? '<span class="nc-si">Llegas</span>' : `<span class="nc-no">Te faltan ${fmt(x[4] - pf, 3)}</span>`}</td></tr>`).join("")
+      || `<tr><td colspan="5" class="note">Ningún destino con esos filtros.</td></tr>`;
+    $("#nc-mas").innerHTML = l.length > ncVer ? `Se muestran ${ncVer} de ${l.length}. <button type="button" id="nc-vermas">Ver más</button>` : "";
+    $("#nc-vermas")?.addEventListener("click", () => { ncVer += 100; pintarCortes(PF); }); }
   function calcularNota() {
     const generales = Math.min(36, val("nt-carne") + val("nt-ingles") + val("nt-titulo") + val("nt-deporte"));
     const militares = Math.min(4, val("nt-empleo") + val("nt-recomp") + 0.5 * val("nt-misiones") + 0.25 * val("nt-anos"));
     const co = generales + militares, nco = co / 4, nop = val("nt-aciertos") / 10, pf = 0.7 * nop + 0.3 * nco;
     $("#nt-co").textContent = fmt(co, co % 1 ? 2 : 0); $("#nt-co10").textContent = `${fmt(nco, 2)} sobre 10`;
-    $("#nt-op").textContent = fmt(nop, 2); $("#nt-pf").textContent = fmt(pf, 2); $("#nt-pct-v").textContent = `${val("nt-aciertos")} %`;
+    $("#nt-op").textContent = fmt(nop, 2); $("#nt-pf").textContent = fmt(pf, 2); $("#nt-pct-v").textContent = `${val("nt-aciertos")} %`; pintarCortes(pf);
     $("#nt-aviso").textContent = generales === 36 && val("nt-carne") + val("nt-ingles") + val("nt-titulo") + val("nt-deporte") > 36 ? "Los méritos generales y académicos llegan al máximo de 36 puntos." : "";
     try { localStorage.setItem(LSN(), JSON.stringify(Object.fromEntries(campos.map(id => [id, $("#" + id).type === "checkbox" ? $("#" + id).checked : $("#" + id).value])))); } catch (e) { /* sin almacenamiento */ } }
   try { const g = JSON.parse(localStorage.getItem(LSN())) || {}; campos.forEach(id => { if (id in g) $("#" + id)[$("#" + id).type === "checkbox" ? "checked" : "value"] = g[id]; }); } catch (e) { /* sin datos guardados */ }
